@@ -25,6 +25,9 @@ const setIoServer = function (server) {
             const roomId = userlist[room][user].roomId;
             db.ref(`/onlineUserList/${room}/${user}`).remove();
             db.ref(`/rooms/${roomId}/userOnline/${user}`).remove();
+
+            // 연결 끊긴 유저도 내보냄
+            ioServer.to(user).emit('noSignal', { roomName: room, roomId });
           }
         });
       });
@@ -122,7 +125,11 @@ const setIoServer = function (server) {
       console.log('유저 ' + roomName + '에서 강제 종료' + socket.id);
       socket
         .to(roomName)
-        .emit('userLeft', ioServer.sockets.adapter.rooms[roomName], socket.id);
+        .emit(
+          'userDisconnected',
+          ioServer.sockets.adapter.rooms[roomName],
+          socket.id
+        );
 
       // delete user from room or room iteself
       const clientsInRoom = ioServer.sockets.adapter.rooms[roomName];
@@ -144,7 +151,7 @@ const setIoServer = function (server) {
         socket
           .to(roomName)
           .emit(
-            'userLeft',
+            'userDisconnected',
             ioServer.sockets.adapter.rooms[roomName],
             socket.id
           );
