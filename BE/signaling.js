@@ -157,6 +157,10 @@ const setIoServer = function (server) {
           );
       });
 
+      socket.on('disconnectRequest', (fromUser, toUser) => {
+        ioServer.to(toUser).emit('disconnectRequest', fromUser);
+      });
+
       // delete user from room or room iteself
       const clientsInRoom = ioServer.sockets.adapter.rooms[roomName];
       const numClients = clientsInRoom
@@ -170,10 +174,6 @@ const setIoServer = function (server) {
         db.ref(`/rooms/${roomId}/userOnline/${socket.id}`).remove();
       }
       console.log('한 명이 방을 나간 후 userlist =', userlist);
-    });
-
-    socket.on('disconnectRequest', (fromUser, toUser) => {
-      ioServer.to(toUser).emit('disconnectRequest', fromUser);
     });
 
     socket.on('ImOnline', (roomName) => {

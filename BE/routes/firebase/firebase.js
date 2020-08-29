@@ -24,28 +24,28 @@ router.get('/', (req, res, next) => {
   res.json(cipherText);
 });
 
-router.post('/signup', async (req, res, next) => {
+router.post('/signup', (req, res, next) => {
   const { email, password, displayName } = req.body;
 
-  try {
-    // authentication에 유저 정보 생성
-    const userRecord = await admin.auth().createUser({
+  admin
+    .auth()
+    .createUser({
       email,
       password,
       displayName,
-    });
+    })
+    .then((userRecord) => {
+      db.ref('/users/' + userRecord.uid).update({
+        uid: userRecord.uid,
+        email,
+        displayName,
+      });
 
-    // db에 user 정보 생성
-    await db.ref('/users/' + userRecord.uid).update({
-      uid: userRecord.uid,
-      email,
-      displayName,
+      res.status(201).send(userRecord.uid);
+    })
+    .catch((error) => {
+      res.json(error);
     });
-
-    res.status(201).send(userRecord.uid);
-  } catch (error) {
-    console.log('Error creating new user: ', error);
-  }
 });
 
 // next 이용해서 띄어놓을 수 있으면 좋겠다.
