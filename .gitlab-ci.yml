@@ -1,25 +1,25 @@
-image: node:14.5.0
+# image: node:14.5.0
 
-variables:
-  RTC: "WebRTC"
-  ELECTRON: "electron-react"
+# variables:
+#   RTC: "WebRTC"
+#   ELECTRON: "electron-react"
 
-cache:
-  paths:
-    - ./"$RTC"/node_modules
-    - ./"$ELECTRON"/node_modules
+# cache:
+#   paths:
+#     - ./"$RTC"/node_modules
+#     - ./"$ELECTRON"/node_modules
 
-before_script:  
-  - apt-get update -qq && apt-get install
+# before_script:
+#   - apt-get update -qq && apt-get install
 
-build-webrtc: 
-  script: yarn --cwd ./"$RTC"
-  only:
-    changes:
-      - ./"$RTC"/*
+# build-webrtc:
+#   script: yarn --cwd ./"$RTC"
+#   only:
+#     changes:
+#       - ./"$RTC"/*
 
-build-electron: 
-  script: yarn --cwd ./"$ELECTRON"
-  only:
-    changes:
-      - ./"$ELECTRON"/*
+# build-electron:
+#   script: yarn --cwd ./"$ELECTRON"
+#   only:
+#     changes:
+#       - ./"$ELECTRON"/*
