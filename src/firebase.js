@@ -1,21 +1,24 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-// var admin = require('firebase-admin');
-const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
-const firebaseConfigKey = require('./firebaseConfigKey.json');
-const CryptoJS = require('crypto-js');
+const admin = require("firebase-admin");
+const serviceAccount = require("../credentials/serviceAccountKey.json");
+const firebaseConfigKey = require("../credentials/firebaseConfigKey.json");
+const CryptoJS = require("crypto-js");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://soma-team-183.firebaseio.com',
+  databaseURL: "https://soma-team-183.firebaseio.com",
 });
 
 const db = admin.database();
 
-router.get('/', (req, res, next) => {
+router.get("/", (req, res, next) => {
   const key = req.query[0];
-  console.log('key = ', key);
+  if (key === undefined) {
+    res.status(400).send("no key specified");
+    return;
+  }
+  console.log("key = ", key);
   const cipherText = CryptoJS.AES.encrypt(
     JSON.stringify(firebaseConfigKey),
     key
@@ -24,7 +27,7 @@ router.get('/', (req, res, next) => {
   res.json(cipherText);
 });
 
-router.post('/signup', (req, res, next) => {
+router.post("/signup", (req, res, next) => {
   const { email, password, displayName } = req.body;
 
   admin
@@ -35,7 +38,7 @@ router.post('/signup', (req, res, next) => {
       displayName,
     })
     .then((userRecord) => {
-      db.ref('/users/' + userRecord.uid).update({
+      db.ref("/users/" + userRecord.uid).update({
         uid: userRecord.uid,
         email,
         displayName,
@@ -49,11 +52,11 @@ router.post('/signup', (req, res, next) => {
 });
 
 // next 이용해서 띄어놓을 수 있으면 좋겠다.
-router.post('/createRoom', (req, res, next) => {
+router.post("/createRoom", (req, res, next) => {
   const { roomName, userName, host } = req.body;
   const roomDetail = { roomName, host, hostName: userName };
   // create room
-  const newRoomRef = db.ref('/rooms').push({
+  const newRoomRef = db.ref("/rooms").push({
     roomDetail,
   });
 
@@ -66,8 +69,8 @@ router.post('/createRoom', (req, res, next) => {
   });
   // create messageHub for the room
   db.ref(`/messageHub/${roomId}/messages`).push({
-    message: userName + ' created ' + roomName,
-    sender: 'bot',
+    message: userName + " created " + roomName,
+    sender: "bot",
     sentAt: admin.database.ServerValue.TIMESTAMP,
   });
 
@@ -82,13 +85,13 @@ router.post('/createRoom', (req, res, next) => {
   res.status(201);
 });
 
-router.post('/addFavRoom', async (req, res, next) => {
+router.post("/addFavRoom", async (req, res, next) => {
   const { uid, userName, roomId } = req.body;
 
   let roomDetail;
   try {
     // db에서 room detail을 받아옴.
-    await db.ref(`/rooms/${roomId}`).once('value', (data) => {
+    await db.ref(`/rooms/${roomId}`).once("value", (data) => {
       roomDetail = data.val().roomDetail;
     });
 
@@ -104,19 +107,19 @@ router.post('/addFavRoom', async (req, res, next) => {
       host: false,
     });
   } catch (error) {
-    console.log('Error creating new user: ', error);
+    console.log("Error creating new user: ", error);
   }
 
   res.status(201);
 });
 
-router.post('/leaveTeam', (req, res) => {
+router.post("/leaveTeam", (req, res) => {
   const { roomId, uid } = req.body;
   leaveTeam(roomId, uid);
 
   res.status(201);
 });
-router.post('/delegateHost', (req, res) => {
+router.post("/delegateHost", (req, res) => {
   const { roomId, uid, userName } = req.body;
 
   db.ref(`/rooms/${roomId}/userlist/${uid}`).update({ host: true });
@@ -126,7 +129,7 @@ router.post('/delegateHost', (req, res) => {
   });
 
   let userlist;
-  db.ref(`/rooms/${roomId}/userlist`).once('value', async (data) => {
+  db.ref(`/rooms/${roomId}/userlist`).once("value", async (data) => {
     try {
       userlist = await data.val();
       console.log(userlist);
@@ -142,12 +145,12 @@ router.post('/delegateHost', (req, res) => {
   });
 });
 
-router.post('/deleteTeam', (req, res) => {
+router.post("/deleteTeam", (req, res) => {
   const { roomId, uid } = req.body;
   console.log(roomId, uid);
 
   let userlist;
-  db.ref(`/rooms/${roomId}/userlist`).once('value', async (data) => {
+  db.ref(`/rooms/${roomId}/userlist`).once("value", async (data) => {
     try {
       userlist = await data.val();
 
@@ -170,10 +173,10 @@ function leaveTeam(roomId, uid) {
   db.ref(`/rooms/${roomId}/userlist/${uid}`).remove();
 }
 
-router.post('/message', async (req, res) => {
+router.post("/message", async (req, res) => {
   const { roomId, displayName, message } = req.body;
 
-  db.ref('/messageHub/' + roomId + '/messages').push({
+  db.ref("/messageHub/" + roomId + "/messages").push({
     sender: displayName,
     message,
     sentAt: admin.database.ServerValue.TIMESTAMP,
