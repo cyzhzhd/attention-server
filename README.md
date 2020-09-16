@@ -47,3 +47,9 @@ MessageHub = 룸 정보 + 메시지
 Users = 유저 정보 + 등록 룸 정보  
 OnlineUserlist = 접속중인 유저 목록
 
+### MongoDB
+* __Replicaset name__: rs0
+
+__Instance 1__: 52.78.146.191  
+__Instance 2__: 3.34.139.112  
+__Instance 3__: 3.34.137.172  
