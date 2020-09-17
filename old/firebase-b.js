@@ -12,44 +12,6 @@ admin.initializeApp({
 
 const db = admin.database();
 
-router.get("/", (req, res, next) => {
-  const key = req.query[0];
-  if (key === undefined) {
-    res.status(400).send("no key specified");
-    return;
-  }
-  console.log("key = ", key);
-  const cipherText = CryptoJS.AES.encrypt(
-    JSON.stringify(firebaseConfigKey),
-    key
-  ).toString();
-  // res.send로 보내야 하나?
-  res.json(cipherText);
-});
-
-router.post("/signup", (req, res, next) => {
-  const { email, password, displayName } = req.body;
-
-  admin
-    .auth()
-    .createUser({
-      email,
-      password,
-      displayName,
-    })
-    .then((userRecord) => {
-      db.ref("/users/" + userRecord.uid).update({
-        uid: userRecord.uid,
-        email,
-        displayName,
-      });
-
-      res.status(201).send(userRecord.uid);
-    })
-    .catch((error) => {
-      res.json(error);
-    });
-});
 
 // next 이용해서 띄어놓을 수 있으면 좋겠다.
 router.post("/createRoom", (req, res, next) => {

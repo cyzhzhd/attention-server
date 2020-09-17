@@ -5,9 +5,12 @@
  */
 
 var app = require("../app");
-var ioServer = require("../src/signaling");
 var debug = require("debug")("be:server");
 var http = require("http");
+var mongoose = require("mongoose");
+var dotenv = require("dotenv");
+var setIoServer = require("../src/session");
+dotenv.config();
 
 /**
  * Get port from environment and store in Express.
@@ -21,8 +24,25 @@ app.set("port", port);
  */
 
 var server = http.createServer(app);
+setIoServer.default(server);
 
-ioServer(server);
+
+/**
+ * Connect mongoose
+ */
+
+const replicaURI = process.env.MONGO_URI;
+mongoose.connect(replicaURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useCreateIndex: true,
+})
+  .then(() => { console.log('DB connection success') })
+  .catch(() => {
+    console.error('DB connection failed');
+    process.exit(1);
+  });
+
 
 /**
  * Listen on provided port, on all network interfaces.

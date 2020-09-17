@@ -9,6 +9,8 @@ const setIoServer = function (server) {
     userlist = snapshot.val();
   });
 
+  /////////////////////////
+
   function OnlineUserChecker() {
     if (userlist === null || userlist === undefined) return;
     if (Object.keys(userlist).length > 0) {
@@ -37,6 +39,8 @@ const setIoServer = function (server) {
     OnlineUserChecker();
   }, 10000);
 
+  /////////////////////////
+
   // socket io
   ioServer.sockets.on('connection', (socket) => {
     console.log('user connected', socket.id);
@@ -56,6 +60,8 @@ const setIoServer = function (server) {
         socket.to(message.sendTo).emit('message', message);
       }
     });
+
+    /////////////////////////
 
     socket.on('create or join', (roomName, user, roomId) => {
       if (user === null || user === undefined) return;
@@ -101,6 +107,8 @@ const setIoServer = function (server) {
       db.ref(`/rooms/${roomId}/userOnline/${socket.id}`).update(newUser);
     });
 
+    /////////////////////////
+
     socket.on('disconnect', () => {
       // Searching room name
       if (userlist === null || userlist === undefined) return;
@@ -143,6 +151,8 @@ const setIoServer = function (server) {
       console.log('강제 연결 종료 후 userlist = ', userlist);
     });
 
+    /////////////////////////
+
     socket.on('leave room', (roomName, roomId) => {
       log('Received request to leave the room' + roomName);
       console.log('roomId = ', roomId);
@@ -176,6 +186,8 @@ const setIoServer = function (server) {
       console.log('한 명이 방을 나간 후 userlist =', userlist);
     });
 
+    /////////////////////////
+
     socket.on('ImOnline', (roomName) => {
       if (
         userlist === null ||
@@ -190,6 +202,9 @@ const setIoServer = function (server) {
         signaled: true,
       });
     });
+
+    /////////////////////////
+
   });
 };
 module.exports = setIoServer;
