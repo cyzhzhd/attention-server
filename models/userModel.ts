@@ -6,5 +6,6 @@ export const userModel = new mongoose.Schema({
     password: { type: String, required: true },
     name: { type: String, required: true },
     isTeacher: { type: Boolean, required: true },
+    ownClasses: [{ type: mongoose.Schema.Types.ObjectId }],
     classes: [{ type: mongoose.Schema.Types.ObjectId }]
 })

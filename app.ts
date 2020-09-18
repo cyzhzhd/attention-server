@@ -3,6 +3,7 @@ import morgan from "morgan";
 import userRouter from "./src/user";
 import authRouter from "./src/auth";
 import classRouter from "./src/class";
+import { errorHandler, undefinedMethodHandler } from "./src/errorHandler";
 
 const app = express();
 
@@ -14,5 +15,8 @@ app.use('/user', userRouter);
 app.use('/auth', authRouter);
 app.use('/class', classRouter);
 // app.use("/api/firebase", firebaseRouter);
+
+app.use(undefinedMethodHandler);
+app.use(errorHandler);
 
 module.exports = app;

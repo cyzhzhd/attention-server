@@ -11,5 +11,6 @@ exports.userModel = new mongoose_1.default.Schema({
     password: { type: String, required: true },
     name: { type: String, required: true },
     isTeacher: { type: Boolean, required: true },
+    ownClasses: [{ type: mongoose_1.default.Schema.Types.ObjectId }],
     classes: [{ type: mongoose_1.default.Schema.Types.ObjectId }]
 });

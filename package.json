@@ -1,6 +1,6 @@
 {
-  "name": "be",
-  "version": "0.0.0",
+  "name": "team183-be",
+  "version": "0.0.4",
   "private": true,
   "scripts": {
     "start": "tsc && node ./bin/www",

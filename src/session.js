@@ -12,6 +12,7 @@ var REDIS_HOST = process.env.REDIS_HOST;
 var REDIS_PORT = parseInt(process.env.REDIS_PORT);
 exports.setIoServer = function (server) {
     var ioServer = socket_io_1.default(server);
-    ioServer.adapter(socket_io_redis_1.default({ host: REDIS_HOST, port: REDIS_PORT }));
+    var adapter = socket_io_redis_1.default({ host: REDIS_HOST, port: REDIS_PORT });
+    ioServer.adapter(adapter);
 };
 exports.default = exports.setIoServer;

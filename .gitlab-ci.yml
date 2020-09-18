@@ -8,3 +8,9 @@ download_dependency:
   only:
     changes:
       - ./
+
+build:
+  script: yarn build
+  only:
+    changes:
+      - ./
