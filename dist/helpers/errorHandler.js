@@ -13,7 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.undefinedMethod = exports.errorHandler = exports.ErrorHandler = void 0;
+exports.undefinedMethodHandler = exports.errorHandler = exports.ErrorHandler = void 0;
 var ErrorHandler = /** @class */ (function (_super) {
     __extends(ErrorHandler, _super);
     function ErrorHandler(status, code) {
@@ -37,6 +37,6 @@ exports.errorHandler = function (err, req, res, next) {
         res.status(500).send("undefiend_error_occured");
     }
 };
-exports.undefinedMethod = function (req, res, next) {
+exports.undefinedMethodHandler = function (req, res, next) {
     res.status(404).send("undefined_method");
 };

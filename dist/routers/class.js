@@ -46,7 +46,7 @@ var dotenv_1 = __importDefault(require("dotenv"));
 var assert_1 = __importDefault(require("assert"));
 var userModel_1 = require("../models/userModel");
 var classModel_1 = require("../models/classModel");
-var errorHandler_1 = require("./errorHandler");
+var errorHandler_1 = require("../helpers/errorHandler");
 dotenv_1.default.config();
 var router = express_1.default.Router();
 var PRIVATE_KEY = process.env.PRIVATE_KEY;

@@ -6,8 +6,7 @@ import assert from "assert";
 import { userModel } from "../models/userModel";
 import { classModel } from "../models/classModel"
 import { ReqJwt } from "../types/reqjwt"
-import { ErrorHandler } from "./errorHandler";
-
+import { ErrorHandler } from "../helpers/errorHandler";
 
 dotenv.config();
 const router = express.Router();

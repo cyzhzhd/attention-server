@@ -1,9 +1,9 @@
 import express from "express";
 import morgan from "morgan";
-import userRouter from "./src/user";
-import authRouter from "./src/auth";
-import classRouter from "./src/class";
-import { errorHandler, undefinedMethodHandler } from "./src/errorHandler";
+import userRouter from "./routers/user";
+import authRouter from "./routers/auth";
+import classRouter from "./routers/class";
+import { undefinedMethodHandler, errorHandler } from './helpers/errorHandler'
 
 const app = express();
 
