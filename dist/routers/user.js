@@ -39,7 +39,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// TODO modify jwt remains valid after user deletion
 var express_1 = __importDefault(require("express"));
 var express_jwt_1 = __importDefault(require("express-jwt"));
 var mongoose_1 = __importDefault(require("mongoose"));
@@ -56,6 +55,7 @@ var JWT_EXIPRE = process.env.JWTEXPIRE;
 var User = mongoose_1.default.model('User', userModel_1.userModel);
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 // TODO encrypt JWT with public key
+// TODO JWT refreshing mechanism
 router.post('/login', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
     var user, usrInfo, token, err_1;
     return __generator(this, function (_a) {
@@ -122,7 +122,7 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
         switch (_a.label) {
             case 0:
                 req = _req;
-                if (!('id' in req.body)) {
+                if (!('class' in req.body)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'class_id_not_specified'))];
                 }
                 return [4 /*yield*/, mongoose_1.default.startSession()];
@@ -132,22 +132,22 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
                 _a.label = 2;
             case 2:
                 _a.trys.push([2, 7, , 9]);
-                return [4 /*yield*/, Class.findById(req.body.id)];
+                return [4 /*yield*/, Class.findById(req.body.class)];
             case 3:
                 classDoc = _a.sent();
                 assert_1.default.ok(classDoc);
                 return [4 /*yield*/, User.findOne({
                         _id: req.user._id,
-                        ownClasses: { $in: req.body.id }
+                        ownClasses: { $in: req.body.class }
                     })];
             case 4:
                 userDoc = _a.sent();
                 assert_1.default.ok(!userDoc);
-                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $addToSet: { classes: req.body.id } }, { session: session })];
+                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $addToSet: { classes: req.body.class } }, { session: session })];
             case 5:
                 updateUser = _a.sent();
                 assert_1.default(updateUser && updateUser.n >= 1);
-                return [4 /*yield*/, Class.updateOne({ _id: req.body.id }, { $addToSet: { students: req.user._id } }, { session: session })];
+                return [4 /*yield*/, Class.updateOne({ _id: req.body.class }, { $addToSet: { students: req.user._id } }, { session: session })];
             case 6:
                 updateClass = _a.sent();
                 assert_1.default(updateClass && updateClass.n >= 1);
@@ -174,7 +174,7 @@ router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
         switch (_a.label) {
             case 0:
                 req = _req;
-                if (!('id' in req.query)) {
+                if (!('class' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'class_id_not_specified'))];
                 }
                 return [4 /*yield*/, mongoose_1.default.startSession()];
@@ -184,22 +184,21 @@ router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
                 _a.label = 2;
             case 2:
                 _a.trys.push([2, 6, , 8]);
-                return [4 /*yield*/, Class.findById(req.query.id)];
+                return [4 /*yield*/, Class.findById(req.query.class)];
             case 3:
                 doc = _a.sent();
                 assert_1.default.ok(doc);
-                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $pull: { classes: req.query.id } }, { session: session })];
+                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $pull: { classes: req.query.class } }, { session: session })];
             case 4:
                 updateUser = _a.sent();
                 assert_1.default(updateUser && updateUser.n >= 1);
-                return [4 /*yield*/, Class.updateOne({ _id: req.query.id }, { $pull: { students: req.user._id } }, { session: session })];
+                return [4 /*yield*/, Class.updateOne({ _id: req.query.class }, { $pull: { students: req.user._id } }, { session: session })];
             case 5:
                 updateClass = _a.sent();
                 assert_1.default(updateClass && updateClass.n >= 1);
                 return [3 /*break*/, 8];
             case 6:
                 err_4 = _a.sent();
-                console.log("abort!!!!");
                 return [4 /*yield*/, session.abortTransaction()];
             case 7:
                 _a.sent();

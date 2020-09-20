@@ -1,4 +1,3 @@
-// TODO modify jwt remains valid after user deletion
 import express from "express";
 import expressjwt from "express-jwt";
 import mongoose from "mongoose";
@@ -19,6 +18,7 @@ const User = mongoose.model('User', userModel);
 const Class = mongoose.model('Class', classModel);
 
 // TODO encrypt JWT with public key
+// TODO JWT refreshing mechanism
 router.post('/login', async (req, res, next) => {
     if (!('email' in req.body) || !('password' in req.body)) {
         return next(new ErrorHandler(401, 'need_email_and_password'));
@@ -65,7 +65,7 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
     async (_req, res, next) => {
         const req = _req as ReqJwt;
 
-        if (!('id' in req.body)) {
+        if (!('class' in req.body)) {
             return next(new ErrorHandler(400, 'class_id_not_specified'));
         }
 
@@ -73,27 +73,27 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
         session.startTransaction();
 
         try {
-            const classDoc = await Class.findById(req.body.id);
+            const classDoc = await Class.findById(req.body.class);
             assert.ok(classDoc);
 
             // Teacher can't add own class
             const userDoc = await User.findOne(
                 {
                     _id: req.user._id,
-                    ownClasses: { $in: req.body.id }
+                    ownClasses: { $in: req.body.class }
                 }
             );
             assert.ok(!userDoc);
 
             const updateUser = await User.updateOne(
                 { _id: req.user._id },
-                { $addToSet: { classes: req.body.id } },
+                { $addToSet: { classes: req.body.class } },
                 { session: session }
             );
             assert(updateUser && updateUser.n >= 1);
 
             const updateClass = await Class.updateOne(
-                { _id: req.body.id },
+                { _id: req.body.class },
                 { $addToSet: { students: req.user._id } },
                 { session: session }
             );
@@ -113,7 +113,7 @@ router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
     async (_req, res, next) => {
         const req = _req as ReqJwt;
 
-        if (!('id' in req.query)) {
+        if (!('class' in req.query)) {
             return next(new ErrorHandler(400, 'class_id_not_specified'));
         }
 
@@ -121,24 +121,23 @@ router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
         session.startTransaction();
 
         try {
-            const doc = await Class.findById(req.query.id);
+            const doc = await Class.findById(req.query.class);
             assert.ok(doc);
 
             const updateUser = await User.updateOne(
                 { _id: req.user._id },
-                { $pull: { classes: req.query.id } },
+                { $pull: { classes: req.query.class } },
                 { session: session }
             );
             assert(updateUser && updateUser.n >= 1);
 
             const updateClass = await Class.updateOne(
-                { _id: req.query.id },
+                { _id: req.query.class },
                 { $pull: { students: req.user._id } },
                 { session: session }
             );
             assert(updateClass && updateClass.n >= 1);
         } catch (err) {
-            console.log("abort!!!!");
             await session.abortTransaction();
             session.endSession();
             return next(new ErrorHandler(400, 'removing_class_from_user_failed'));

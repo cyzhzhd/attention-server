@@ -10,7 +10,7 @@ const debug = require("debug")("be:server");
 const http = require("http");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const setIoServer = require("../dist/routers/session");
+const setIoServer = require("../dist/socket");
 dotenv.config();
 
 
@@ -25,6 +25,11 @@ app.set("port", port);
  * Create HTTP server.
  */
 const server = http.createServer(app);
+
+
+/**
+ * Set socket.
+ */
 setIoServer.default(server);
 
 

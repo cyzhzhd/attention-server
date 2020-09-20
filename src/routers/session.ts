@@ -1,15 +1,124 @@
-import socket from "socket.io";
-import redis from "socket.io-redis";
+import express from "express";
+import mongoose from "mongoose";
+import expressjwt from "express-jwt";
 import dotenv from "dotenv";
+import assert from "assert";
+import { userModel } from "../models/userModel";
+import { classModel } from "../models/classModel"
+import { classSessionModel } from "../models/classSessionModel"
+import { ReqJwt } from "../types/reqjwt"
+import { ErrorHandler } from "../helpers/errorHandler";
 
 dotenv.config();
-const REDIS_HOST = process.env.REDIS_HOST as string;
-const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
+const router = express.Router();
+const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 
-export const setIoServer = function (server: import('http').Server) {
-    const ioServer = socket(server);
-    const adapter = redis({ host: REDIS_HOST, port: REDIS_PORT });
-    ioServer.adapter(adapter);
-}
+const Class = mongoose.model('Class', classModel);
+const User = mongoose.model('User', userModel);
+const ClassSession = mongoose.model('ClassSession', classSessionModel);
 
-export default setIoServer;
+// TODO encrypt JWT with public key
+router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
+    async (_req, res, next) => {
+        const req = _req as ReqJwt;
+
+        if (!req.user.isTeacher) {
+            return next(new ErrorHandler(401, "user_not_teacher"));
+        }
+        if (!('class' in req.body)) {
+            return next(new ErrorHandler(400, 'class_id_not_specified'));
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Check user owns class
+            const userDoc = await User.findOne(
+                {
+                    _id: req.user._id,
+                    ownClasses: { $in: req.body.class }
+                }
+            );
+            assert.ok(userDoc);
+
+            req.body.teacher = req.user._id;
+            req.body.startTime = Date.now();
+            const [newClassSession] = await ClassSession.create([req.body],
+                { session: session }) as unknown as Array<mongoose.Document>;
+            assert.ok(newClassSession);
+
+            const update = await Class.updateOne(
+                { _id: req.body.class, status: "offline" },
+                { status: "online", session: newClassSession._id },
+                { session: session }
+            );
+            assert(update && update.n >= 1);
+
+        } catch (err) {
+            await session.abortTransaction();
+            session.endSession();
+            if (err._message) {
+                return next(new ErrorHandler(400, "invalid_request"));
+            }
+            else {
+                return next(new ErrorHandler(401, "session_start_failed"));
+            }
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+        res.sendStatus(200);
+    });
+
+
+// TODO remove all data related to class
+router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
+    async (_req, res, next) => {
+        const req = _req as ReqJwt;
+
+        if (!req.user.isTeacher) {
+            return next(new ErrorHandler(401, "user_not_teacher"));
+        }
+        if (!('class' in req.query) || !('session' in req.query)) {
+            return next(new ErrorHandler(400, "class_or_session_id_not_specified"));
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Check user owns class
+            const userDoc = await User.findOne(
+                {
+                    _id: req.user._id,
+                    ownClasses: { $in: req.query.class }
+                }
+            );
+            assert.ok(userDoc);
+
+            const update_session = await ClassSession.updateOne(
+                { _id: req.query.session, endTime: null },
+                { endTime: Date.now() },
+                { session: session }
+            );
+            assert(update_session && update_session.n >= 1);
+
+            const update_class = await Class.updateOne(
+                { _id: req.query.class, status: "online" },
+                { status: "offline", session: null },
+                { session: session }
+            );
+            assert(update_class && update_class.n >= 1);
+        } catch (err) {
+            await session.abortTransaction();
+            session.endSession();
+            return next(new ErrorHandler(400, "session_termination_failed"));
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+        res.sendStatus(200);
+    });
+
+export default router;

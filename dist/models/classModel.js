@@ -13,6 +13,7 @@ exports.classModel = new mongoose_1.default.Schema({
         type: String, required: true,
         enum: ['offline', 'online'], default: "offline"
     },
+    session: { type: mongoose_1.default.Schema.Types.ObjectId, default: null },
     notice: { type: String },
     schedules: [{ date: Date, body: String }],
     quizSets: [{ type: mongoose_1.default.Schema.Types.ObjectId }],
