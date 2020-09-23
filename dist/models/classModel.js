@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.classModel = void 0;
 var mongoose_1 = __importDefault(require("mongoose"));
 exports.classModel = new mongoose_1.default.Schema({
-    id: mongoose_1.default.Schema.Types.ObjectId,
+    id: { type: mongoose_1.default.Schema.Types.ObjectId },
     name: { type: String, required: true },
     tag: [{ type: String }],
     status: {

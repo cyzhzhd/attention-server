@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 import assert from "assert";
 import { userModel } from "../models/userModel";
 import { classModel } from "../models/classModel"
-import { classSessionModel } from "../models/classSessionModel"
-import { ReqJwt } from "../types/reqjwt"
+import { classSessionModel } from "../models/classSessionModel";
+import { ReqJwt } from "../types/reqjwt";
 import { ErrorHandler } from "../helpers/errorHandler";
 
 dotenv.config();
@@ -17,7 +17,6 @@ const Class = mongoose.model('Class', classModel);
 const User = mongoose.model('User', userModel);
 const ClassSession = mongoose.model('ClassSession', classSessionModel);
 
-// TODO encrypt JWT with public key
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
@@ -42,19 +41,20 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             );
             assert.ok(userDoc);
 
+            // Start session
             req.body.teacher = req.user._id;
             req.body.startTime = Date.now();
-            const [newClassSession] = await ClassSession.create([req.body],
+            req.body.status = "online";
+            const [classDoc] = await ClassSession.create([req.body],
                 { session: session }) as unknown as Array<mongoose.Document>;
-            assert.ok(newClassSession);
+            assert.ok(classDoc);
 
-            const update = await Class.updateOne(
+            const updatedClass = await Class.updateOne(
                 { _id: req.body.class, status: "offline" },
-                { status: "online", session: newClassSession._id },
+                { status: "online", session: classDoc._id },
                 { session: session }
             );
-            assert(update && update.n >= 1);
-
+            assert.ok(updatedClass && updatedClass.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();
@@ -72,7 +72,6 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     });
 
 
-// TODO remove all data related to class
 router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
@@ -97,19 +96,21 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             );
             assert.ok(userDoc);
 
-            const update_session = await ClassSession.updateOne(
-                { _id: req.query.session, endTime: null },
-                { endTime: Date.now() },
+            // TODO kick remaining user
+            // End session
+            const updatedSession = await ClassSession.updateOne(
+                { _id: req.query.session, status: "online" },
+                { status: "offline", endTime: Date.now(), userList: null },
                 { session: session }
             );
-            assert(update_session && update_session.n >= 1);
+            assert.ok(updatedSession && updatedSession.n >= 1);
 
-            const update_class = await Class.updateOne(
+            const updatedClass = await Class.updateOne(
                 { _id: req.query.class, status: "online" },
                 { status: "offline", session: null },
                 { session: session }
             );
-            assert(update_class && update_class.n >= 1);
+            assert.ok(updatedClass && updatedClass.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();

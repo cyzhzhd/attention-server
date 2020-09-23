@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export const classModel = new mongoose.Schema({
-    id: mongoose.Schema.Types.ObjectId,
+    id: { type: mongoose.Schema.Types.ObjectId },
     name: { type: String, required: true },
     tag: [{ type: String }],
     status: {

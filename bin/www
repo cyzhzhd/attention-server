@@ -41,6 +41,8 @@ mongoose.connect(replicaURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useCreateIndex: true,
+  useFindAndModify: false,
+  dbName: process.env.DB_NAME
 })
   .then(() => { console.log('DB connection success') })
   .catch(() => {

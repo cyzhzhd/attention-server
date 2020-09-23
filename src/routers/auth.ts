@@ -3,6 +3,7 @@ import express from "express";
 const router = express.Router();
 
 // TODO: use pubkey to encrypt hashed password
+// TODO: JWT encryption
 router.get('/pubkey', (req, res) => {
     res.sendStatus(200);
 })

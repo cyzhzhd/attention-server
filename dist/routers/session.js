@@ -54,9 +54,8 @@ var PRIVATE_KEY = process.env.PRIVATE_KEY;
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 var User = mongoose_1.default.model('User', userModel_1.userModel);
 var ClassSession = mongoose_1.default.model('ClassSession', classSessionModel_1.classSessionModel);
-// TODO encrypt JWT with public key
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, userDoc, newClassSession, update, err_1;
+    var req, session, userDoc, classDoc, updatedClass, err_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -81,16 +80,18 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 3:
                 userDoc = _a.sent();
                 assert_1.default.ok(userDoc);
+                // Start session
                 req.body.teacher = req.user._id;
                 req.body.startTime = Date.now();
+                req.body.status = "online";
                 return [4 /*yield*/, ClassSession.create([req.body], { session: session })];
             case 4:
-                newClassSession = (_a.sent())[0];
-                assert_1.default.ok(newClassSession);
-                return [4 /*yield*/, Class.updateOne({ _id: req.body.class, status: "offline" }, { status: "online", session: newClassSession._id }, { session: session })];
+                classDoc = (_a.sent())[0];
+                assert_1.default.ok(classDoc);
+                return [4 /*yield*/, Class.updateOne({ _id: req.body.class, status: "offline" }, { status: "online", session: classDoc._id }, { session: session })];
             case 5:
-                update = _a.sent();
-                assert_1.default(update && update.n >= 1);
+                updatedClass = _a.sent();
+                assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 8];
             case 6:
                 err_1 = _a.sent();
@@ -114,9 +115,8 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
         }
     });
 }); });
-// TODO remove all data related to class
 router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, userDoc, update_session, update_class, err_2;
+    var req, session, userDoc, updatedSession, updatedClass, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -141,14 +141,14 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 3:
                 userDoc = _a.sent();
                 assert_1.default.ok(userDoc);
-                return [4 /*yield*/, ClassSession.updateOne({ _id: req.query.session, endTime: null }, { endTime: Date.now() }, { session: session })];
+                return [4 /*yield*/, ClassSession.updateOne({ _id: req.query.session, status: "online" }, { status: "offline", endTime: Date.now(), userList: null }, { session: session })];
             case 4:
-                update_session = _a.sent();
-                assert_1.default(update_session && update_session.n >= 1);
+                updatedSession = _a.sent();
+                assert_1.default.ok(updatedSession && updatedSession.n >= 1);
                 return [4 /*yield*/, Class.updateOne({ _id: req.query.class, status: "online" }, { status: "offline", session: null }, { session: session })];
             case 5:
-                update_class = _a.sent();
-                assert_1.default(update_class && update_class.n >= 1);
+                updatedClass = _a.sent();
+                assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 8];
             case 6:
                 err_2 = _a.sent();

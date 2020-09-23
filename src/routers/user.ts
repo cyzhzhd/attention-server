@@ -2,6 +2,7 @@ import express from "express";
 import expressjwt from "express-jwt";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import assert from "assert";
 import { userModel } from "../models/userModel";
@@ -25,14 +26,19 @@ router.post('/login', async (req, res, next) => {
     }
 
     try {
-        const user = await User.findOne(req.body);
-        if (user === null) {
+        req.body.password = crypto.createHash('sha256')
+            .update(req.body.email + req.body.password)
+            .digest('hex');
+        const userDoc = await User.findOne(req.body);
+        if (userDoc === null) {
             return next(new ErrorHandler(401, 'invalid_email_and_password'));
         }
         else {
-            const usrInfo = user.toJSON();
-            delete usrInfo.password;
-            const token = jwt.sign(usrInfo, PRIVATE_KEY,
+            // Send JWT with picked information as payload
+            const userInfo = userDoc.toJSON();
+            const pickedInfo = (({ _id, email, name, isTeacher }) =>
+                ({ _id, email, name, isTeacher }))(userInfo);
+            const token = jwt.sign(pickedInfo, PRIVATE_KEY,
                 { expiresIn: JWT_EXIPRE });
             res.status(200).send(token);
         }
@@ -41,11 +47,23 @@ router.post('/login', async (req, res, next) => {
     }
 })
 
-// TODO request regex check of email
 router.post('/account', async (req, res, next) => {
     try {
-        const doc = await User.create(req.body);
-        assert.ok(doc);
+        // Validate email and password
+        const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        if (!emailRegex.test(req.body.email)) {
+            return next(new ErrorHandler(400, 'invalid_email'));
+        }
+        if (req.body.password.length < 8) {
+            return next(new ErrorHandler(400, 'password_too_short'));
+        }
+
+        // Save user info
+        req.body.password = crypto.createHash('sha256')
+            .update(req.body.email + req.body.password)
+            .digest('hex');
+        const userDoc = await User.create(req.body);
+        assert.ok(userDoc);
 
         res.sendStatus(200);
     } catch (err) {
@@ -73,10 +91,10 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
         session.startTransaction();
 
         try {
+            // Check class existence
             const classDoc = await Class.findById(req.body.class);
             assert.ok(classDoc);
 
-            // Teacher can't add own class
             const userDoc = await User.findOne(
                 {
                     _id: req.user._id,
@@ -85,19 +103,20 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
             );
             assert.ok(!userDoc);
 
-            const updateUser = await User.updateOne(
+            // Update user class list
+            const updatedUser = await User.updateOne(
                 { _id: req.user._id },
                 { $addToSet: { classes: req.body.class } },
                 { session: session }
             );
-            assert(updateUser && updateUser.n >= 1);
+            assert.ok(updatedUser && updatedUser.n >= 1);
 
-            const updateClass = await Class.updateOne(
+            const updatedClass = await Class.updateOne(
                 { _id: req.body.class },
                 { $addToSet: { students: req.user._id } },
                 { session: session }
             );
-            assert(updateClass && updateClass.n >= 1);
+            assert.ok(updatedClass && updatedClass.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();
@@ -121,22 +140,24 @@ router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
         session.startTransaction();
 
         try {
-            const doc = await Class.findById(req.query.class);
-            assert.ok(doc);
+            // Check class existence
+            const classDoc = await Class.findById(req.query.class);
+            assert.ok(classDoc);
 
-            const updateUser = await User.updateOne(
+            // Delete from User class list
+            const updatedUser = await User.updateOne(
                 { _id: req.user._id },
                 { $pull: { classes: req.query.class } },
                 { session: session }
             );
-            assert(updateUser && updateUser.n >= 1);
+            assert.ok(updatedUser && updatedUser.n >= 1);
 
-            const updateClass = await Class.updateOne(
+            const updatedClass = await Class.updateOne(
                 { _id: req.query.class },
                 { $pull: { students: req.user._id } },
                 { session: session }
             );
-            assert(updateClass && updateClass.n >= 1);
+            assert.ok(updatedClass && updatedClass.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();

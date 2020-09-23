@@ -53,3 +53,6 @@ OnlineUserlist = 접속중인 유저 목록
 __Instance 1__: 52.78.146.191  
 __Instance 2__: 3.34.139.112  
 __Instance 3__: 3.34.137.172  
+
+### Redis Cluster
+* __Primary Host__:redis-183.lbxaz4.ng.0001.apn2.cache.amazonaws.com

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var router = express_1.default.Router();
 // TODO: use pubkey to encrypt hashed password
+// TODO: JWT encryption
 router.get('/pubkey', function (req, res) {
     res.sendStatus(200);
 });

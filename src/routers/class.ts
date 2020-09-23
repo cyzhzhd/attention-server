@@ -24,17 +24,16 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         }
 
         try {
-            const found = await Class.findById(req.query.id);
-            assert.ok(found);
+            const classDoc = await Class.findById(req.query.id);
+            assert.ok(classDoc);
 
-            res.status(200).send(found);
+            res.status(200).send(classDoc);
         } catch (err) {
             return next(new ErrorHandler(400, "class_found_failed"));
         }
 
     })
 
-// TODO encrypt JWT with public key
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
@@ -47,17 +46,18 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         session.startTransaction();
 
         try {
+            // Create class and add teacher as owner
             req.body.teacher = req.user._id;
-            const [newClass] = await Class.create([req.body],
+            const [classDoc] = await Class.create([req.body],
                 { session: session }) as unknown as Array<mongoose.Document>;
-            assert.ok(newClass);
+            assert.ok(classDoc)
 
-            const update = await User.updateOne(
+            const updatedUser = await User.updateOne(
                 { _id: req.user._id },
-                { $push: { ownClasses: newClass._id } },
+                { $push: { ownClasses: classDoc._id } },
                 { session: session }
             );
-            assert(update && update.n >= 1);
+            assert.ok(updatedUser && updatedUser.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();
@@ -74,7 +74,7 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         res.sendStatus(200);
     });
 
-// TODO remove all data related to class
+// TODO remove all data related to class (if exists)
 router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
@@ -90,17 +90,19 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         session.startTransaction();
 
         try {
+            // Remove class(with no session ongoing) and related data
             const toDelete = {
                 _id: req.query.id,
-                teacher: req.user._id
+                teacher: req.user._id,
+                session: null
             }
-            const deletion = await Class.deleteOne(toDelete, { session: session });
-            assert(deletion.n && deletion.n >= 1);
+            const deletedClass = await Class.deleteOne(toDelete, { session: session });
+            assert.ok(deletedClass.n && deletedClass.n >= 1)
 
-            const update = await User.updateMany({},
+            const updatedUser = await User.updateMany({},
                 { $pull: { classes: req.query.id, ownClasses: req.query.id }, },
                 { session: session });
-            assert(update.n && update.n >= 1);
+            assert.ok(updatedUser.n && updatedUser.n >= 1);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();

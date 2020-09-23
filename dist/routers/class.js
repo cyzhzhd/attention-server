@@ -53,7 +53,7 @@ var PRIVATE_KEY = process.env.PRIVATE_KEY;
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 var User = mongoose_1.default.model('User', userModel_1.userModel);
 router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, found, err_1;
+    var req, classDoc, err_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -66,9 +66,9 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
                 _a.trys.push([1, 3, , 4]);
                 return [4 /*yield*/, Class.findById(req.query.id)];
             case 2:
-                found = _a.sent();
-                assert_1.default.ok(found);
-                res.status(200).send(found);
+                classDoc = _a.sent();
+                assert_1.default.ok(classDoc);
+                res.status(200).send(classDoc);
                 return [3 /*break*/, 4];
             case 3:
                 err_1 = _a.sent();
@@ -77,9 +77,8 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
         }
     });
 }); });
-// TODO encrypt JWT with public key
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, newClass, update, err_2;
+    var req, session, classDoc, updatedUser, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -94,15 +93,16 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                 _a.label = 2;
             case 2:
                 _a.trys.push([2, 5, , 7]);
+                // Create class and add teacher as owner
                 req.body.teacher = req.user._id;
                 return [4 /*yield*/, Class.create([req.body], { session: session })];
             case 3:
-                newClass = (_a.sent())[0];
-                assert_1.default.ok(newClass);
-                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $push: { ownClasses: newClass._id } }, { session: session })];
+                classDoc = (_a.sent())[0];
+                assert_1.default.ok(classDoc);
+                return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $push: { ownClasses: classDoc._id } }, { session: session })];
             case 4:
-                update = _a.sent();
-                assert_1.default(update && update.n >= 1);
+                updatedUser = _a.sent();
+                assert_1.default.ok(updatedUser && updatedUser.n >= 1);
                 return [3 /*break*/, 7];
             case 5:
                 err_2 = _a.sent();
@@ -126,9 +126,9 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
         }
     });
 }); });
-// TODO remove all data related to class
+// TODO remove all data related to class (if exists)
 router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, toDelete, deletion, update, err_3;
+    var req, session, toDelete, deletedClass, updatedUser, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -148,16 +148,17 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
                 _a.trys.push([2, 5, , 7]);
                 toDelete = {
                     _id: req.query.id,
-                    teacher: req.user._id
+                    teacher: req.user._id,
+                    session: null
                 };
                 return [4 /*yield*/, Class.deleteOne(toDelete, { session: session })];
             case 3:
-                deletion = _a.sent();
-                assert_1.default(deletion.n && deletion.n >= 1);
+                deletedClass = _a.sent();
+                assert_1.default.ok(deletedClass.n && deletedClass.n >= 1);
                 return [4 /*yield*/, User.updateMany({}, { $pull: { classes: req.query.id, ownClasses: req.query.id }, }, { session: session })];
             case 4:
-                update = _a.sent();
-                assert_1.default(update.n && update.n >= 1);
+                updatedUser = _a.sent();
+                assert_1.default.ok(updatedUser.n && updatedUser.n >= 1);
                 return [3 /*break*/, 7];
             case 5:
                 err_3 = _a.sent();

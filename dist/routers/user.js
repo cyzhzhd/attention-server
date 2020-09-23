@@ -43,6 +43,7 @@ var express_1 = __importDefault(require("express"));
 var express_jwt_1 = __importDefault(require("express-jwt"));
 var mongoose_1 = __importDefault(require("mongoose"));
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var crypto_1 = __importDefault(require("crypto"));
 var dotenv_1 = __importDefault(require("dotenv"));
 var assert_1 = __importDefault(require("assert"));
 var userModel_1 = require("../models/userModel");
@@ -57,7 +58,7 @@ var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 // TODO encrypt JWT with public key
 // TODO JWT refreshing mechanism
 router.post('/login', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var user, usrInfo, token, err_1;
+    var userDoc, userInfo, pickedInfo, token, err_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -67,16 +68,22 @@ router.post('/login', function (req, res, next) { return __awaiter(void 0, void 
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
+                req.body.password = crypto_1.default.createHash('sha256')
+                    .update(req.body.email + req.body.password)
+                    .digest('hex');
                 return [4 /*yield*/, User.findOne(req.body)];
             case 2:
-                user = _a.sent();
-                if (user === null) {
+                userDoc = _a.sent();
+                if (userDoc === null) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, 'invalid_email_and_password'))];
                 }
                 else {
-                    usrInfo = user.toJSON();
-                    delete usrInfo.password;
-                    token = jsonwebtoken_1.default.sign(usrInfo, PRIVATE_KEY, { expiresIn: JWT_EXIPRE });
+                    userInfo = userDoc.toJSON();
+                    pickedInfo = (function (_a) {
+                        var _id = _a._id, email = _a.email, name = _a.name, isTeacher = _a.isTeacher;
+                        return ({ _id: _id, email: email, name: name, isTeacher: isTeacher });
+                    })(userInfo);
+                    token = jsonwebtoken_1.default.sign(pickedInfo, PRIVATE_KEY, { expiresIn: JWT_EXIPRE });
                     res.status(200).send(token);
                 }
                 return [3 /*break*/, 4];
@@ -87,17 +94,27 @@ router.post('/login', function (req, res, next) { return __awaiter(void 0, void 
         }
     });
 }); });
-// TODO request regex check of email
 router.post('/account', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var doc, err_2;
+    var emailRegex, userDoc, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 2, , 3]);
+                emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                if (!emailRegex.test(req.body.email)) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_email'))];
+                }
+                if (req.body.password.length < 8) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'password_too_short'))];
+                }
+                // Save user info
+                req.body.password = crypto_1.default.createHash('sha256')
+                    .update(req.body.email + req.body.password)
+                    .digest('hex');
                 return [4 /*yield*/, User.create(req.body)];
             case 1:
-                doc = _a.sent();
-                assert_1.default.ok(doc);
+                userDoc = _a.sent();
+                assert_1.default.ok(userDoc);
                 res.sendStatus(200);
                 return [3 /*break*/, 3];
             case 2:
@@ -117,7 +134,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
     });
 }); });
 router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, classDoc, userDoc, updateUser, updateClass, err_3;
+    var req, session, classDoc, userDoc, updatedUser, updatedClass, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -145,12 +162,12 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
                 assert_1.default.ok(!userDoc);
                 return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $addToSet: { classes: req.body.class } }, { session: session })];
             case 5:
-                updateUser = _a.sent();
-                assert_1.default(updateUser && updateUser.n >= 1);
+                updatedUser = _a.sent();
+                assert_1.default.ok(updatedUser && updatedUser.n >= 1);
                 return [4 /*yield*/, Class.updateOne({ _id: req.body.class }, { $addToSet: { students: req.user._id } }, { session: session })];
             case 6:
-                updateClass = _a.sent();
-                assert_1.default(updateClass && updateClass.n >= 1);
+                updatedClass = _a.sent();
+                assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 9];
             case 7:
                 err_3 = _a.sent();
@@ -169,7 +186,7 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
     });
 }); });
 router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, doc, updateUser, updateClass, err_4;
+    var req, session, classDoc, updatedUser, updatedClass, err_4;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -186,16 +203,16 @@ router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
                 _a.trys.push([2, 6, , 8]);
                 return [4 /*yield*/, Class.findById(req.query.class)];
             case 3:
-                doc = _a.sent();
-                assert_1.default.ok(doc);
+                classDoc = _a.sent();
+                assert_1.default.ok(classDoc);
                 return [4 /*yield*/, User.updateOne({ _id: req.user._id }, { $pull: { classes: req.query.class } }, { session: session })];
             case 4:
-                updateUser = _a.sent();
-                assert_1.default(updateUser && updateUser.n >= 1);
+                updatedUser = _a.sent();
+                assert_1.default.ok(updatedUser && updatedUser.n >= 1);
                 return [4 /*yield*/, Class.updateOne({ _id: req.query.class }, { $pull: { students: req.user._id } }, { session: session })];
             case 5:
-                updateClass = _a.sent();
-                assert_1.default(updateClass && updateClass.n >= 1);
+                updatedClass = _a.sent();
+                assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 8];
             case 6:
                 err_4 = _a.sent();
