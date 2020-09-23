@@ -1,9 +1,11 @@
 ## Team 183 Backend & DB
 
 ### Server URI
-* Primary: TODO:3000
-* Instance1: TODO:3000
-* Instance2: TODO:3000
+* __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__
+* Instance1: 13.125.95.168:3000
+* Instance2: 13.125.157.92:3000  
+
+(TLS not enabled)
 
 ### MongoDB
 * __Replicaset name__: rs0
@@ -12,8 +14,11 @@ __Instance 1__: 52.78.146.191
 __Instance 2__: 3.34.139.112  
 __Instance 3__: 3.34.137.172  
 
+(ACL connection only)
+
 ### Redis Cluster
 * __Primary Host__:redis-183.lbxaz4.ng.0001.apn2.cache.amazonaws.com   
+
 (VPC connection only)
 
 ### Specifications
