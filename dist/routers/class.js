@@ -121,7 +121,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 8:
                 _a.sent();
                 session.endSession();
-                res.sendStatus(200);
+                res.sendStatus(201);
                 return [2 /*return*/];
         }
     });

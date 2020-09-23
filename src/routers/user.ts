@@ -65,7 +65,7 @@ router.post('/account', async (req, res, next) => {
         const userDoc = await User.create(req.body);
         assert.ok(userDoc);
 
-        res.sendStatus(200);
+        res.sendStatus(201);
     } catch (err) {
         if (err._message) {
             return next(new ErrorHandler(400, 'invalid_request'));
@@ -78,6 +78,26 @@ router.post('/account', async (req, res, next) => {
         }
     }
 })
+
+router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
+    async (_req, res, next) => {
+        const req = _req as ReqJwt;
+
+        try {
+            const userDoc = await User.findById(req.user._id);
+            assert.ok(userDoc);
+
+            const userInfo = userDoc.toJSON();
+            const pickedInfo =
+                (({ _id, email, name, isTeacher, ownClasses, classes }) =>
+                    ({
+                        _id, email, name, isTeacher, ownClasses, classes
+                    }))(userInfo);
+            res.status(200).send(pickedInfo);
+        } catch (err) {
+            return next(new ErrorHandler(400, 'invalid_request'));
+        }
+    })
 
 router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
@@ -125,7 +145,7 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
 
         await session.commitTransaction();
         session.endSession();
-        res.sendStatus(200);
+        res.sendStatus(201);
     })
 
 router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),

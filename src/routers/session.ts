@@ -68,7 +68,7 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
 
         await session.commitTransaction();
         session.endSession();
-        res.sendStatus(200);
+        res.sendStatus(201);
     });
 
 

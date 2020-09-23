@@ -115,7 +115,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
             case 1:
                 userDoc = _a.sent();
                 assert_1.default.ok(userDoc);
-                res.sendStatus(200);
+                res.sendStatus(201);
                 return [3 /*break*/, 3];
             case 2:
                 err_2 = _a.sent();
@@ -133,8 +133,37 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
         }
     });
 }); });
+router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var req, userDoc, userInfo, pickedInfo, err_3;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                req = _req;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, User.findById(req.user._id)];
+            case 2:
+                userDoc = _a.sent();
+                assert_1.default.ok(userDoc);
+                userInfo = userDoc.toJSON();
+                pickedInfo = (function (_a) {
+                    var _id = _a._id, email = _a.email, name = _a.name, isTeacher = _a.isTeacher, ownClasses = _a.ownClasses, classes = _a.classes;
+                    return ({
+                        _id: _id, email: email, name: name, isTeacher: isTeacher, ownClasses: ownClasses, classes: classes
+                    });
+                })(userInfo);
+                res.status(200).send(pickedInfo);
+                return [3 /*break*/, 4];
+            case 3:
+                err_3 = _a.sent();
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_request'))];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); });
 router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, classDoc, userDoc, updatedUser, updatedClass, err_3;
+    var req, session, classDoc, userDoc, updatedUser, updatedClass, err_4;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -170,7 +199,7 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 9];
             case 7:
-                err_3 = _a.sent();
+                err_4 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
             case 8:
                 _a.sent();
@@ -180,13 +209,13 @@ router.post('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: [
             case 10:
                 _a.sent();
                 session.endSession();
-                res.sendStatus(200);
+                res.sendStatus(201);
                 return [2 /*return*/];
         }
     });
 }); });
 router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, classDoc, updatedUser, updatedClass, err_4;
+    var req, session, classDoc, updatedUser, updatedClass, err_5;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -215,7 +244,7 @@ router.delete('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
                 return [3 /*break*/, 8];
             case 6:
-                err_4 = _a.sent();
+                err_5 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
             case 7:
                 _a.sent();
