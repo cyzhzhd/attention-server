@@ -44,19 +44,14 @@ var socket_io_1 = __importDefault(require("socket.io"));
 var socket_io_redis_1 = __importDefault(require("socket.io-redis"));
 var mongoose_1 = __importDefault(require("mongoose"));
 var dotenv_1 = __importDefault(require("dotenv"));
-var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var assert_1 = __importDefault(require("assert"));
 var path_1 = __importDefault(require("path"));
-var userModel_1 = require("./models/userModel");
-var classModel_1 = require("./models/classModel");
+var auth_1 = require("./helpers/auth");
 var classSessionModel_1 = require("./models/classSessionModel");
 var chatModel_1 = require("./models/chatModel");
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
 var REDIS_HOST = process.env.REDIS_HOST;
 var REDIS_PORT = parseInt(process.env.REDIS_PORT);
-var PRIVATE_KEY = process.env.PRIVATE_KEY;
-var Class = mongoose_1.default.model('Class', classModel_1.classModel);
-var User = mongoose_1.default.model('User', userModel_1.userModel);
 var ClassSession = mongoose_1.default.model('ClassSession', classSessionModel_1.classSessionModel);
 var Chat = mongoose_1.default.model('Chat', chatModel_1.chatModel);
 function checkData(data, checkList) {
@@ -67,73 +62,6 @@ function checkData(data, checkList) {
         }
     }
     return true;
-}
-function authSocketConnection(data) {
-    return __awaiter(this, void 0, void 0, function () {
-        var payload, _a, classDoc, teacherDoc, studentDoc;
-        var _this = this;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    payload = jsonwebtoken_1.default.verify(data.token, PRIVATE_KEY, { algorithms: ["HS256"] });
-                    return [4 /*yield*/, Promise.all([
-                            // Check class and session exists
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var classDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, Class.findOne({
-                                                _id: data.class,
-                                                session: data.session
-                                            })];
-                                        case 1:
-                                            classDoc = _a.sent();
-                                            resolve(classDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
-                            // Check user class access
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var teacherDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, User.findOne({
-                                                _id: payload._id,
-                                                ownClasses: { $in: data.class }
-                                            })];
-                                        case 1:
-                                            teacherDoc = _a.sent();
-                                            resolve(teacherDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var studentDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, User.findOne({
-                                                _id: payload._id,
-                                                classes: { $in: data.class }
-                                            })];
-                                        case 1:
-                                            studentDoc = _a.sent();
-                                            resolve(studentDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
-                        ])];
-                case 1:
-                    _a = _b.sent(), classDoc = _a[0], teacherDoc = _a[1], studentDoc = _a[2];
-                    assert_1.default.ok(classDoc && (teacherDoc || studentDoc));
-                    return [2 /*return*/, {
-                            payload: payload, isHost: !!teacherDoc
-                        }];
-            }
-        });
-    });
 }
 exports.setIoServer = function (server) {
     var _this = this;
@@ -152,7 +80,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         _a = _b.sent(), payload = _a.payload, isHost = _a.isHost;
                         return [4 /*yield*/, ClassSession.findOneAndUpdate({
@@ -198,7 +126,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         payload = (_a.sent()).payload;
                         return [4 /*yield*/, ClassSession.findOneAndUpdate({
@@ -235,7 +163,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         payload = (_a.sent()).payload;
                         return [4 /*yield*/, ClassSession.findOneAndUpdate({
@@ -273,7 +201,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         payload = (_a.sent()).payload;
                         return [4 /*yield*/, ClassSession.findOneAndUpdate({
@@ -311,7 +239,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         payload = (_a.sent()).payload;
                         signalContent = {
@@ -338,7 +266,7 @@ exports.setIoServer = function (server) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
                     case 1:
                         _a.sent();
                         return [4 /*yield*/, ClassSession.findById(data.session)];
@@ -357,65 +285,49 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('sendChat', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var session, payload, chatDoc, updatedClassSession, chatContent, err_7;
+            var payload, classSessionDoc, chatDoc, chatContent, err_7;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, mongoose_1.default.startSession()];
-                    case 1:
-                        session = _a.sent();
-                        session.startTransaction();
-                        _a.label = 2;
-                    case 2:
-                        _a.trys.push([2, 6, , 8]);
+                    case 0:
+                        _a.trys.push([0, 4, , 5]);
                         if (!checkData(data, ['token', 'class', 'session', 'content'])) {
                             throw new Error();
                         }
                         ;
-                        return [4 /*yield*/, authSocketConnection(data)];
-                    case 3:
+                        return [4 /*yield*/, auth_1.authSessionConnection(data)];
+                    case 1:
                         payload = (_a.sent()).payload;
-                        return [4 /*yield*/, Chat.create([{
-                                    date: Date.now(),
-                                    user: payload._id,
-                                    content: data.content,
-                                }], { session: session })];
-                    case 4:
-                        chatDoc = (_a.sent())[0];
-                        assert_1.default.ok(chatDoc);
-                        return [4 /*yield*/, ClassSession.findOneAndUpdate({
+                        return [4 /*yield*/, ClassSession.findOne({
                                 _id: data.session,
                                 status: "online",
                                 "userList.user": {
                                     $in: payload._id
                                 }
-                            }, {
-                                $push: {
-                                    chat: chatDoc._id
-                                }
-                            }, { new: true, session: session })];
-                    case 5:
-                        updatedClassSession = _a.sent();
-                        assert_1.default.ok(updatedClassSession);
+                            })];
+                    case 2:
+                        classSessionDoc = _a.sent();
+                        assert_1.default.ok(classSessionDoc);
+                        return [4 /*yield*/, Chat.create({
+                                date: Date.now(),
+                                session: data.session,
+                                user: payload._id,
+                                content: data.content,
+                            })];
+                    case 3:
+                        chatDoc = _a.sent();
+                        assert_1.default.ok(chatDoc);
                         chatContent = {
                             user: payload._id,
                             name: payload.name,
                             content: data.content
                         };
                         ioServer.to(data.session).emit('deliverChat', chatContent);
-                        return [3 /*break*/, 8];
-                    case 6:
+                        return [3 /*break*/, 5];
+                    case 4:
                         err_7 = _a.sent();
-                        return [4 /*yield*/, session.abortTransaction()];
-                    case 7:
-                        _a.sent();
-                        session.endSession();
                         ioServer.to(socket.id).emit('error');
                         return [2 /*return*/];
-                    case 8: return [4 /*yield*/, session.commitTransaction()];
-                    case 9:
-                        _a.sent();
-                        session.endSession();
-                        return [2 /*return*/];
+                    case 5: return [2 /*return*/];
                 }
             });
         }); });
@@ -446,7 +358,7 @@ exports.setIoServer = function (server) {
                     case 2:
                         err_8 = _a.sent();
                         console.error(err_8); // TODO log error
-                        return [3 /*break*/, 3];
+                        return [2 /*return*/];
                     case 3: return [2 /*return*/];
                 }
             });

@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = __importDefault(require("fs"));
 var express_1 = __importDefault(require("express"));
 var morgan_1 = __importDefault(require("morgan"));
-// import authRouter from "./routers/auth";
 var user_1 = __importDefault(require("./routers/user"));
 var class_1 = __importDefault(require("./routers/class"));
 var session_1 = __importDefault(require("./routers/session"));
@@ -18,7 +17,6 @@ app.use(morgan_1.default('common', {
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// app.use('/auth', authRouter);
 app.use('/user', user_1.default);
 app.use('/class', class_1.default);
 app.use('/session', session_1.default);

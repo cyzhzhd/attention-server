@@ -1,9 +1,9 @@
 ## Team 183 Backend & DB
 
 ### Server URI
-* __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__
-* Instance1: 13.125.95.168:3000
-* Instance2: 13.125.157.92:3000  
+* __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__   
+* Instance1: 3.35.25.72:3000   
+* Instance2: 52.78.160.20:3000   
 
 (TLS not enabled)
 
@@ -17,12 +17,12 @@ __Instance 3__: 3.34.137.172
 (ACL connection only)
 
 ### Redis Cluster
-* __Primary Host__:redis-183.lbxaz4.ng.0001.apn2.cache.amazonaws.com   
+* __Primary Host__:team183-redis.lbxaz4.ng.0001.apn2.cache.amazonaws.com:6379    
 
 (VPC connection only)
 
 ### Specifications
-* [RESTAPI - Swagger HUB](https://app.swaggerhub.com/apis/cyrojyro/swmteam-183/1.0.0#/)
+* [RESTAPI - Swagger HUB](https://app.swaggerhub.com/apis/cyrojyro/swmteam-183/1.0.1#/)
 * [Socket.io Specification](https://13.125.91.162/swmaestro/183-1/-/wikis/Socket.io-Specification)
 * [API 요청하기](https://13.125.91.162/swmaestro/183-1/-/wikis/REST-API-%EC%9A%94%EC%B2%AD)
 

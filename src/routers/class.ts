@@ -20,12 +20,12 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
 
-        if (!('id' in req.query)) {
+        if (!('class' in req.query)) {
             return next(new ErrorHandler(400, "class_id_not_specified"));
         }
 
         try {
-            const classDoc = await Class.findById(req.query.id);
+            const classDoc = await Class.findById(req.query.class);
             assert.ok(classDoc);
 
             res.status(200).send(classDoc);
@@ -49,6 +49,7 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         try {
             // Create class and add teacher as owner
             req.body.teacher = req.user._id;
+            req.body.teacherName = req.user.name;
             const [classDoc] = await Class.create([req.body],
                 { session: session }) as unknown as Array<mongoose.Document>;
             assert.ok(classDoc)

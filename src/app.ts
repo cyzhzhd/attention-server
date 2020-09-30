@@ -1,7 +1,6 @@
 import fs from "fs";
 import express from "express";
 import logger from "morgan";
-// import authRouter from "./routers/auth";
 import userRouter from "./routers/user";
 import classRouter from "./routers/class";
 import classSessionRouter from "./routers/session";
@@ -16,7 +15,6 @@ app.use(logger('common', {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/class', classRouter);
 app.use('/session', classSessionRouter);

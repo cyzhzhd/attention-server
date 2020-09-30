@@ -4,6 +4,7 @@ export const classSessionModel = new mongoose.Schema({
     id: { type: mongoose.Schema.Types.ObjectId },
     class: { type: mongoose.Schema.Types.ObjectId, required: true },
     teacher: { type: mongoose.Schema.Types.ObjectId, required: true },
+    teacherName: { type: String, required: true },
     userList: [{
         user: { type: mongoose.Schema.Types.ObjectId, required: true },
         socket: { type: String, required: true },
@@ -11,12 +12,13 @@ export const classSessionModel = new mongoose.Schema({
         isTeacher: { type: Boolean, required: true },
         isSharingScreen: { type: Boolean, required: true }
     }],
+    scheduledStartTime: { type: Date, required: true },
+    scheduledEndTime: { type: Date, required: true },
     startTime: { type: Date, required: true },
     endTime: { type: Date, default: null },
     status: {
         type: String, required: true,
         enum: ['offline', 'online']
     },
-    quizes: [{ type: mongoose.Schema.Types.ObjectId }],
-    chats: [{ type: mongoose.Schema.Types.ObjectId }],
+    quizes: [{ type: mongoose.Schema.Types.ObjectId }]
 })

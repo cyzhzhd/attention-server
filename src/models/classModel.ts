@@ -13,6 +13,7 @@ export const classModel = new mongoose.Schema({
     schedules: [{ date: Date, content: String }],
     quizSets: [{ type: mongoose.Schema.Types.ObjectId }],
     teacher: { type: mongoose.Schema.Types.ObjectId, required: true },
+    teacherName: { type: String, required: true },
     students: [{ type: mongoose.Schema.Types.ObjectId }],
     classType: {
         type: String, required: true,

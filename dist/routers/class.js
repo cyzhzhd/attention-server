@@ -59,13 +59,13 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
         switch (_a.label) {
             case 0:
                 req = _req;
-                if (!('id' in req.query)) {
+                if (!('class' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];
                 }
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, Class.findById(req.query.id)];
+                return [4 /*yield*/, Class.findById(req.query.class)];
             case 2:
                 classDoc = _a.sent();
                 assert_1.default.ok(classDoc);
@@ -96,6 +96,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                 _a.trys.push([2, 5, , 7]);
                 // Create class and add teacher as owner
                 req.body.teacher = req.user._id;
+                req.body.teacherName = req.user.name;
                 return [4 /*yield*/, Class.create([req.body], { session: session })];
             case 3:
                 classDoc = (_a.sent())[0];

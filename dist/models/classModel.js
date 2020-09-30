@@ -18,6 +18,7 @@ exports.classModel = new mongoose_1.default.Schema({
     schedules: [{ date: Date, content: String }],
     quizSets: [{ type: mongoose_1.default.Schema.Types.ObjectId }],
     teacher: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
+    teacherName: { type: String, required: true },
     students: [{ type: mongoose_1.default.Schema.Types.ObjectId }],
     classType: {
         type: String, required: true,

@@ -2,23 +2,17 @@ import io from "socket.io";
 import redis from "socket.io-redis";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
 import assert from "assert";
 import path from "path";
+import { authSessionConnection } from './helpers/auth'
 import * as socketData from "./types/socketData";
-import { userModel } from "./models/userModel";
-import { classModel } from "./models/classModel";
 import { classSessionModel } from "./models/classSessionModel";
 import { chatModel } from "./models/chatModel"
-import { Payload } from "./types/reqjwt";
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 const REDIS_HOST = process.env.REDIS_HOST as string;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
-const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 
-const Class = mongoose.model('Class', classModel);
-const User = mongoose.model('User', userModel);
 const ClassSession = mongoose.model('ClassSession', classSessionModel);
 const Chat = mongoose.model('Chat', chatModel);
 
@@ -29,48 +23,6 @@ function checkData(data: Object, checkList: Array<string>): boolean {
         }
     }
     return true;
-}
-
-async function authSocketConnection(data: socketData.Data):
-    Promise<{ payload: Payload, isHost: boolean }> {
-    const payload: Payload = jwt.verify(data.token, PRIVATE_KEY,
-        { algorithms: ["HS256"] }) as Payload;
-
-    const [classDoc, teacherDoc, studentDoc] = await Promise.all([
-        // Check class and session exists
-        new Promise<any>(async (resolve) => {
-            const classDoc = await Class.findOne(
-                {
-                    _id: data.class,
-                    session: data.session
-                }
-            );
-            resolve(classDoc);
-        }),
-        // Check user class access
-        new Promise<any>(async (resolve) => {
-            const teacherDoc = await User.findOne(
-                {
-                    _id: payload._id,
-                    ownClasses: { $in: data.class }
-                }
-            );
-            resolve(teacherDoc);
-        }),
-        new Promise<any>(async (resolve) => {
-            const studentDoc = await User.findOne(
-                {
-                    _id: payload._id,
-                    classes: { $in: data.class }
-                }
-            );
-            resolve(studentDoc);
-        }),
-    ])
-    assert.ok(classDoc && (teacherDoc || studentDoc));
-    return {
-        payload: payload, isHost: !!teacherDoc
-    };
 }
 
 export const setIoServer = function (server: import('http').Server) {
@@ -86,7 +38,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                const { payload, isHost } = await authSocketConnection(data);
+                const { payload, isHost } = await authSessionConnection(data);
 
                 // TODO use Redis to detect connection loss
                 // Check user already connected
@@ -129,7 +81,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                const { payload } = await authSocketConnection(data);
+                const { payload } = await authSessionConnection(data);
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
                         _id: data.session,
@@ -160,7 +112,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                const { payload } = await authSocketConnection(data);
+                const { payload } = await authSessionConnection(data);
 
                 // atomic update - only one can share screen
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
@@ -193,7 +145,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                const { payload } = await authSocketConnection(data);
+                const { payload } = await authSessionConnection(data);
 
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
@@ -225,7 +177,7 @@ export const setIoServer = function (server: import('http').Server) {
                     'sendTo', 'content'])) {
                     throw new Error();
                 };
-                const { payload } = await authSocketConnection(data);
+                const { payload } = await authSessionConnection(data);
 
                 const signalContent = {
                     user: payload._id,
@@ -243,7 +195,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                await authSocketConnection(data);
+                await authSessionConnection(data);
 
                 const classSessionDoc = await ClassSession.findById(data.session);
                 assert(classSessionDoc);
@@ -257,24 +209,13 @@ export const setIoServer = function (server: import('http').Server) {
         })
 
         socket.on('sendChat', async (data: socketData.ContentData) => {
-            const session = await mongoose.startSession();
-            session.startTransaction();
-
             try {
                 if (!checkData(data, ['token', 'class', 'session', 'content'])) {
                     throw new Error();
                 };
-                const { payload } = await authSocketConnection(data);
+                const { payload } = await authSessionConnection(data);
 
-                const [chatDoc] = await Chat.create([{
-                    date: Date.now(),
-                    user: payload._id,
-                    content: data.content,
-                }],
-                    { session: session }) as unknown as Array<mongoose.Document>;
-                assert.ok(chatDoc);
-
-                const updatedClassSession = await ClassSession.findOneAndUpdate(
+                const classSessionDoc = await ClassSession.findOne(
                     {
                         _id: data.session,
                         status: "online",
@@ -282,14 +223,17 @@ export const setIoServer = function (server: import('http').Server) {
                             $in: payload._id
                         }
                     },
-                    {
-                        $push: {
-                            chat: chatDoc._id
-                        }
-                    },
-                    { new: true, session: session }
+
                 );
-                assert.ok(updatedClassSession);
+                assert.ok(classSessionDoc);
+
+                const chatDoc = await Chat.create({
+                    date: Date.now(),
+                    session: data.session,
+                    user: payload._id,
+                    content: data.content,
+                });
+                assert.ok(chatDoc);
 
                 const chatContent = {
                     user: payload._id,
@@ -298,15 +242,9 @@ export const setIoServer = function (server: import('http').Server) {
                 }
                 ioServer.to(data.session).emit('deliverChat', chatContent);
             } catch (err) {
-                await session.abortTransaction();
-                session.endSession()
-
                 ioServer.to(socket.id).emit('error');
                 return;
             }
-
-            await session.commitTransaction();
-            session.endSession();
         })
 
         socket.on('disconnect', async () => {
@@ -332,6 +270,7 @@ export const setIoServer = function (server: import('http').Server) {
                 }
             } catch (err) {
                 console.error(err); // TODO log error
+                return;
             }
         })
 
