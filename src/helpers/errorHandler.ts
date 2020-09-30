@@ -25,5 +25,5 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 };
 
 export const undefinedMethodHandler = (req: Request, res: Response, next: NextFunction): void => {
-    res.status(404).send("undefined_method");
+    res.status(405).send("undefined_method");
 };

@@ -38,5 +38,5 @@ exports.errorHandler = function (err, req, res, next) {
     }
 };
 exports.undefinedMethodHandler = function (req, res, next) {
-    res.status(404).send("undefined_method");
+    res.status(405).send("undefined_method");
 };

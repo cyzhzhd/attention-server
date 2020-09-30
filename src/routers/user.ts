@@ -5,12 +5,13 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import assert from "assert";
+import path from "path";
 import { userModel } from "../models/userModel";
 import { classModel } from "../models/classModel"
 import { ReqJwt } from "../types/reqjwt"
 import { ErrorHandler } from "../helpers/errorHandler";
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 const router = express.Router();
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 const JWT_EXIPRE = process.env.JWTEXPIRE as string;

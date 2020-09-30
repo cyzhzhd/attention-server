@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 "use strict";
 
-
 /**
  * Module dependencies.
  */
@@ -11,8 +10,8 @@ const http = require("http");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const setIoServer = require("../dist/socket");
-dotenv.config();
-
+const path = require("path");
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 /**
  * Get port from environment and store in Express.

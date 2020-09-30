@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import assert from "assert";
+import path from "path";
 import * as socketData from "./types/socketData";
 import { userModel } from "./models/userModel";
 import { classModel } from "./models/classModel";
@@ -11,7 +12,7 @@ import { classSessionModel } from "./models/classSessionModel";
 import { chatModel } from "./models/chatModel"
 import { Payload } from "./types/reqjwt";
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 const REDIS_HOST = process.env.REDIS_HOST as string;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
