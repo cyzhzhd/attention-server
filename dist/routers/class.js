@@ -138,7 +138,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
                 if (!req.user.isTeacher) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "user_not_teacher"))];
                 }
-                if (!('id' in req.query)) {
+                if (!('class' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];
                 }
                 return [4 /*yield*/, mongoose_1.default.startSession()];
@@ -149,7 +149,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 2:
                 _a.trys.push([2, 5, , 7]);
                 toDelete = {
-                    _id: req.query.id,
+                    _id: req.query.class,
                     teacher: req.user._id,
                     session: null
                 };
@@ -157,7 +157,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 3:
                 deletedClass = _a.sent();
                 assert_1.default.ok(deletedClass.n && deletedClass.n >= 1);
-                return [4 /*yield*/, User.updateMany({}, { $pull: { classes: req.query.id, ownClasses: req.query.id }, }, { session: session })];
+                return [4 /*yield*/, User.updateMany({}, { $pull: { classes: req.query.class, ownClasses: req.query.class }, }, { session: session })];
             case 4:
                 updatedUser = _a.sent();
                 assert_1.default.ok(updatedUser.n && updatedUser.n >= 1);

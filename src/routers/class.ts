@@ -84,7 +84,7 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         if (!req.user.isTeacher) {
             return next(new ErrorHandler(401, "user_not_teacher"));
         }
-        if (!('id' in req.query)) {
+        if (!('class' in req.query)) {
             return next(new ErrorHandler(400, "class_id_not_specified"));
         }
 
@@ -94,7 +94,7 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         try {
             // Remove class(with no session ongoing) and related data
             const toDelete = {
-                _id: req.query.id,
+                _id: req.query.class,
                 teacher: req.user._id,
                 session: null
             }
@@ -102,7 +102,7 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             assert.ok(deletedClass.n && deletedClass.n >= 1)
 
             const updatedUser = await User.updateMany({},
-                { $pull: { classes: req.query.id, ownClasses: req.query.id }, },
+                { $pull: { classes: req.query.class, ownClasses: req.query.class }, },
                 { session: session });
             assert.ok(updatedUser.n && updatedUser.n >= 1);
         } catch (err) {

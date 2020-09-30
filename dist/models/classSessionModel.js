@@ -7,6 +7,7 @@ exports.classSessionModel = void 0;
 var mongoose_1 = __importDefault(require("mongoose"));
 exports.classSessionModel = new mongoose_1.default.Schema({
     id: { type: mongoose_1.default.Schema.Types.ObjectId },
+    name: { type: String, required: true },
     class: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     teacher: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     teacherName: { type: String, required: true },
