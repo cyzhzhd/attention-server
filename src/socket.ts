@@ -37,19 +37,22 @@ export const setIoServer = function (server: import('http').Server) {
 
     // Disconnection checker + handler
     setInterval(async () => {
-        const disconnections = await redisWrapper.zrangebyscore(
-            redisClient, 0, Date.now() - 15000);
-
-        // TODO batch job within same session
         try {
+            const curTime = Date.now();
+
+            // get old connections
+            const disconnections = await redisWrapper.zrangebyscore(
+                redisClient, 0, curTime - 15000);
+
             // delete from redis
-            await redisWrapper.zrem(redisClient, disconnections);
+            await redisWrapper.zremrangebyscore(redisClient, 0, curTime - 15000);
 
             // iterate all disconnected user
             for (const disconnection of disconnections) {
                 const [session, user, socket] = disconnection.split('-');
 
                 // remove from mongodb
+                // TODO batch job within same session
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
                         _id: session,

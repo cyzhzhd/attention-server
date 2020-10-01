@@ -120,7 +120,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
                 return [3 /*break*/, 3];
             case 2:
                 err_2 = _a.sent();
-                if (err_2.code === 11000) {
+                if (err_2.code && err_2.code === 11000) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'duplicate_email'))];
                 }
                 else {

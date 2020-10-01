@@ -93,18 +93,18 @@ exports.setIoServer = function (server) {
     var adapter = ioServer.of('/').adapter;
     // Disconnection checker + handler
     setInterval(function () { return __awaiter(_this, void 0, void 0, function () {
-        var disconnections, _loop_1, _i, disconnections_1, disconnection, err_1;
+        var curTime, disconnections, _loop_1, _i, disconnections_1, disconnection, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, redisWrapper.zrangebyscore(redisClient, 0, Date.now() - 15000)];
+                case 0:
+                    _a.trys.push([0, 7, , 8]);
+                    curTime = Date.now();
+                    return [4 /*yield*/, redisWrapper.zrangebyscore(redisClient, 0, curTime - 15000)];
                 case 1:
                     disconnections = _a.sent();
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 8, , 9]);
                     // delete from redis
-                    return [4 /*yield*/, redisWrapper.zrem(redisClient, disconnections)];
-                case 3:
+                    return [4 /*yield*/, redisWrapper.zremrangebyscore(redisClient, 0, curTime - 15000)];
+                case 2:
                     // delete from redis
                     _a.sent();
                     _loop_1 = function (disconnection) {
@@ -138,23 +138,23 @@ exports.setIoServer = function (server) {
                         });
                     };
                     _i = 0, disconnections_1 = disconnections;
-                    _a.label = 4;
-                case 4:
-                    if (!(_i < disconnections_1.length)) return [3 /*break*/, 7];
+                    _a.label = 3;
+                case 3:
+                    if (!(_i < disconnections_1.length)) return [3 /*break*/, 6];
                     disconnection = disconnections_1[_i];
                     return [5 /*yield**/, _loop_1(disconnection)];
-                case 5:
+                case 4:
                     _a.sent();
-                    _a.label = 6;
-                case 6:
+                    _a.label = 5;
+                case 5:
                     _i++;
-                    return [3 /*break*/, 4];
-                case 7: return [3 /*break*/, 9];
-                case 8:
+                    return [3 /*break*/, 3];
+                case 6: return [3 /*break*/, 8];
+                case 7:
                     err_1 = _a.sent();
                     console.log(err_1); // TODO log error
-                    return [3 /*break*/, 9];
-                case 9: return [2 /*return*/];
+                    return [3 /*break*/, 8];
+                case 8: return [2 /*return*/];
             }
         });
     }); }, 10000);

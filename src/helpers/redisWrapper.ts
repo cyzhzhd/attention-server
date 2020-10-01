@@ -29,6 +29,18 @@ export function zrem(redisClient: redis.RedisClient,
     })
 }
 
+export function zremrangebyscore(redisClient: redis.RedisClient,
+    min: number, max: number): Promise<number> {
+    return new Promise((resolve) => {
+        redisClient.zremrangebyscore(REDIS_CONNECTION_COLLECTION, min, max, (err, reply) => {
+            if (err) {
+                resolve(0);
+            }
+            resolve(reply);
+        })
+    })
+}
+
 export function zrangebyscore(redisClient: redis.RedisClient,
     min: number, max: number): Promise<string[]> {
     return new Promise((resolve) => {

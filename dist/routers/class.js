@@ -112,13 +112,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 6:
                 _a.sent();
                 session.endSession();
-                if (err_2._message) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "invalid_request"))];
-                }
-                else {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_creation_failed"))];
-                }
-                return [3 /*break*/, 7];
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_creation_failed"))];
             case 7: return [4 /*yield*/, session.commitTransaction()];
             case 8:
                 _a.sent();
