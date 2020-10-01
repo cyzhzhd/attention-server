@@ -23,7 +23,7 @@ const Class = mongoose.model('Class', classModel);
 // TODO JWT refreshing mechanism
 router.post('/login', async (req, res, next) => {
     if (!('email' in req.body) || !('password' in req.body)) {
-        return next(new ErrorHandler(401, 'need_email_and_password'));
+        return next(new ErrorHandler(400, 'need_email_and_password'));
     }
 
     try {
@@ -32,7 +32,7 @@ router.post('/login', async (req, res, next) => {
             .digest('hex');
         const userDoc = await User.findOne(req.body);
         if (userDoc === null) {
-            return next(new ErrorHandler(401, 'invalid_email_and_password'));
+            return next(new ErrorHandler(400, 'invalid_email_and_password'));
         }
         else {
             // Send JWT with picked information as payload
@@ -68,10 +68,7 @@ router.post('/account', async (req, res, next) => {
 
         res.sendStatus(201);
     } catch (err) {
-        if (err._message) {
-            return next(new ErrorHandler(400, 'invalid_request'));
-        }
-        else if (err.code === 11000) {
+        if (err.code && err.code === 11000) {
             return next(new ErrorHandler(400, 'duplicate_email'));
         }
         else {

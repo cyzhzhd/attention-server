@@ -65,7 +65,7 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         const req = _req as ReqJwt;
 
         if (!req.user.isTeacher) {
-            return next(new ErrorHandler(401, "user_not_teacher"));
+            return next(new ErrorHandler(400, "user_not_teacher"));
         }
         if (!('class' in req.body)) {
             return next(new ErrorHandler(400, 'class_id_not_specified'));
@@ -105,12 +105,7 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         } catch (err) {
             await session.abortTransaction();
             session.endSession();
-            if (err._message) {
-                return next(new ErrorHandler(400, "invalid_request"));
-            }
-            else {
-                return next(new ErrorHandler(401, "session_start_failed"));
-            }
+            return next(new ErrorHandler(400, "session_start_failed"));
         }
 
         await session.commitTransaction();
@@ -124,7 +119,7 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         const req = _req as ReqJwt;
 
         if (!req.user.isTeacher) {
-            return next(new ErrorHandler(401, "user_not_teacher"));
+            return next(new ErrorHandler(400, "user_not_teacher"));
         }
         if (!('class' in req.query) || !('session' in req.query)) {
             return next(new ErrorHandler(400, "class_or_session_id_not_specified"));

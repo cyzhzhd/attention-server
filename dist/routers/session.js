@@ -123,7 +123,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 0:
                 req = _req;
                 if (!req.user.isTeacher) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "user_not_teacher"))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
                 }
                 if (!('class' in req.body)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'class_id_not_specified'))];
@@ -165,13 +165,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 7:
                 _a.sent();
                 session.endSession();
-                if (err_2._message) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "invalid_request"))];
-                }
-                else {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "session_start_failed"))];
-                }
-                return [3 /*break*/, 8];
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "session_start_failed"))];
             case 8: return [4 /*yield*/, session.commitTransaction()];
             case 9:
                 _a.sent();
@@ -188,7 +182,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 0:
                 req = _req;
                 if (!req.user.isTeacher) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "user_not_teacher"))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
                 }
                 if (!('class' in req.query) || !('session' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_or_session_id_not_specified"))];

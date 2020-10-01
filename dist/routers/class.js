@@ -85,7 +85,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 0:
                 req = _req;
                 if (!req.user.isTeacher) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "user_not_teacher"))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
                 }
                 return [4 /*yield*/, mongoose_1.default.startSession()];
             case 1:
@@ -116,7 +116,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "invalid_request"))];
                 }
                 else {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "class_creation_failed"))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_creation_failed"))];
                 }
                 return [3 /*break*/, 7];
             case 7: return [4 /*yield*/, session.commitTransaction()];
@@ -136,7 +136,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 0:
                 req = _req;
                 if (!req.user.isTeacher) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, "user_not_teacher"))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
                 }
                 if (!('class' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];

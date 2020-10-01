@@ -64,7 +64,7 @@ router.post('/login', function (req, res, next) { return __awaiter(void 0, void 
         switch (_a.label) {
             case 0:
                 if (!('email' in req.body) || !('password' in req.body)) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, 'need_email_and_password'))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'need_email_and_password'))];
                 }
                 _a.label = 1;
             case 1:
@@ -76,7 +76,7 @@ router.post('/login', function (req, res, next) { return __awaiter(void 0, void 
             case 2:
                 userDoc = _a.sent();
                 if (userDoc === null) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(401, 'invalid_email_and_password'))];
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_email_and_password'))];
                 }
                 else {
                     userInfo = userDoc.toJSON();
@@ -120,10 +120,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
                 return [3 /*break*/, 3];
             case 2:
                 err_2 = _a.sent();
-                if (err_2._message) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_request'))];
-                }
-                else if (err_2.code === 11000) {
+                if (err_2.code === 11000) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'duplicate_email'))];
                 }
                 else {
