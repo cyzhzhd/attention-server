@@ -143,7 +143,6 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             );
             assert.ok(userDoc);
 
-            // TODO kick remaining user
             // End session
             const updatedSession = await ClassSession.updateOne(
                 { _id: req.query.session, status: "online" },

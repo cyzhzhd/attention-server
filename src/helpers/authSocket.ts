@@ -19,7 +19,7 @@ export async function authSessionConnection(data: socketData.Data):
     const payload: Payload = jwt.verify(data.token, PRIVATE_KEY,
         { algorithms: ["HS256"] }) as Payload;
 
-    const [classDoc, teacherDoc, studentDoc] = await Promise.all([
+    const [classDoc, userDoc] = await Promise.all([
         // Check class and session exists
         new Promise<mongoose.Document | null>(async (resolve) => {
             const classDoc = await Class.findOne(
@@ -32,26 +32,21 @@ export async function authSessionConnection(data: socketData.Data):
         }),
         // Check user class access
         new Promise<mongoose.Document | null>(async (resolve) => {
-            const teacherDoc = await User.findOne(
+            const userDoc = await User.findOne(
                 {
                     _id: payload._id,
-                    ownClasses: { $in: data.class }
                 }
             );
-            resolve(teacherDoc);
-        }),
-        new Promise<mongoose.Document | null>(async (resolve) => {
-            const studentDoc = await User.findOne(
-                {
-                    _id: payload._id,
-                    classes: { $in: data.class }
-                }
-            );
-            resolve(studentDoc);
+            resolve(userDoc);
         }),
     ])
-    assert.ok(classDoc && (teacherDoc || studentDoc));
+    assert.ok(classDoc && userDoc);
+
+    const userJson = userDoc.toJSON();
+    const ownClasses = userJson.ownClasses.map(String);
+    const classes = userJson.classes.map(String);
+    assert.ok(ownClasses.includes(data.class) || classes.includes(data.class));
     return {
-        payload: payload, isHost: !!teacherDoc
+        payload: payload, isHost: !!ownClasses.includes(data.class)
     };
 }

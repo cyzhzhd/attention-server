@@ -51,11 +51,9 @@ dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
 var PRIVATE_KEY = process.env.PRIVATE_KEY;
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 var User = mongoose_1.default.model('User', userModel_1.userModel);
-// TODO use $or once to get user doc
-// or just get by ID and check class arrays
 function authSessionConnection(data) {
     return __awaiter(this, void 0, void 0, function () {
-        var payload, _a, classDoc, teacherDoc, studentDoc;
+        var payload, _a, classDoc, userDoc, userJson, ownClasses, classes;
         var _this = this;
         return __generator(this, function (_b) {
             switch (_b.label) {
@@ -80,41 +78,29 @@ function authSessionConnection(data) {
                             }); }),
                             // Check user class access
                             new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var teacherDoc;
+                                var userDoc;
                                 return __generator(this, function (_a) {
                                     switch (_a.label) {
                                         case 0: return [4 /*yield*/, User.findOne({
                                                 _id: payload._id,
-                                                ownClasses: { $in: data.class }
                                             })];
                                         case 1:
-                                            teacherDoc = _a.sent();
-                                            resolve(teacherDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var studentDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, User.findOne({
-                                                _id: payload._id,
-                                                classes: { $in: data.class }
-                                            })];
-                                        case 1:
-                                            studentDoc = _a.sent();
-                                            resolve(studentDoc);
+                                            userDoc = _a.sent();
+                                            resolve(userDoc);
                                             return [2 /*return*/];
                                     }
                                 });
                             }); }),
                         ])];
                 case 1:
-                    _a = _b.sent(), classDoc = _a[0], teacherDoc = _a[1], studentDoc = _a[2];
-                    assert_1.default.ok(classDoc && (teacherDoc || studentDoc));
+                    _a = _b.sent(), classDoc = _a[0], userDoc = _a[1];
+                    assert_1.default.ok(classDoc && userDoc);
+                    userJson = userDoc.toJSON();
+                    ownClasses = userJson.ownClasses.map(String);
+                    classes = userJson.classes.map(String);
+                    assert_1.default.ok(ownClasses.includes(data.class) || classes.includes(data.class));
                     return [2 /*return*/, {
-                            payload: payload, isHost: !!teacherDoc
+                            payload: payload, isHost: !!ownClasses.includes(data.class)
                         }];
             }
         });

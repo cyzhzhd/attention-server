@@ -1,17 +1,21 @@
 import io from "socket.io";
-import redis from "socket.io-redis";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import assert from "assert";
 import path from "path";
-import { authSessionConnection } from './helpers/auth'
+import redis from "redis";
 import * as socketData from "./types/socketData";
+import * as redisWrapper from "./helpers/redisWrapper";
+import { authSessionConnection } from './helpers/authSocket'
+import socketRedis, { RedisAdapter } from "socket.io-redis";
 import { classSessionModel } from "./models/classSessionModel";
 import { chatModel } from "./models/chatModel"
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 const REDIS_HOST = process.env.REDIS_HOST as string;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
+
+const redisClient = redis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 
 const ClassSession = mongoose.model('ClassSession', classSessionModel);
 const Chat = mongoose.model('Chat', chatModel);
@@ -27,12 +31,60 @@ function checkData(data: Object, checkList: Array<string>): boolean {
 
 export const setIoServer = function (server: import('http').Server) {
     const ioServer = io(server);
-    const adapter = redis({ host: REDIS_HOST, port: REDIS_PORT });
-    ioServer.adapter(adapter);
+    const _adapter = socketRedis({ host: REDIS_HOST, port: REDIS_PORT });
+    ioServer.adapter(_adapter);
+    const adapter = ioServer.of('/').adapter as RedisAdapter;
+
+    // Disconnection checker + handler
+    setInterval(async () => {
+        const disconnections = await redisWrapper.zrangebyscore(
+            redisClient, 0, Date.now() - 15000);
+
+        // TODO batch job within same session
+        try {
+            // delete from redis
+            await redisWrapper.zrem(redisClient, disconnections);
+
+            // iterate all disconnected user
+            for (const disconnection of disconnections) {
+                const [session, user, socket] = disconnection.split('-');
+
+                // remove from mongodb
+                const updatedClassSession = await ClassSession.findOneAndUpdate(
+                    {
+                        _id: session,
+                        status: "online",
+                    },
+                    {
+                        $pull: {
+                            userList: { user: user }
+                        }
+                    },
+                    { new: true }
+                );
+
+                if (updatedClassSession) {
+                    // emit new userlist
+                    const userList = updatedClassSession.toJSON().userList;
+                    ioServer.to(session).emit('sendUserList', userList);
+
+                    // users received deliverDisconnection has to send leaveSession event
+                    ioServer.to(user).emit('deliverDisconnection');
+
+                    // leave socket room
+                    [session, user].forEach((room) => {
+                        adapter.remoteLeave(socket, room, (err) => { })
+                    });
+                }
+            }
+        } catch (err) {
+            console.log(err); // TODO log error
+        }
+    }, 10000);
+
 
     ioServer.on("connection", (socket) => {
-
-        // TODO prevent joining multiple  session
+        // TODO prevent joining multiple session
         socket.on('joinSession', async (data: socketData.Data) => {
             try {
                 if (!checkData(data, ['token', 'class', 'session'])) {
@@ -40,8 +92,7 @@ export const setIoServer = function (server: import('http').Server) {
                 };
                 const { payload, isHost } = await authSessionConnection(data);
 
-                // TODO use Redis to detect connection loss
-                // Check user already connected
+                // Check user if already connected
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
                         _id: data.session,
@@ -64,6 +115,10 @@ export const setIoServer = function (server: import('http').Server) {
                     { new: true }
                 );
                 assert(updatedClassSession);
+
+                // add to redis connection manager
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                await redisWrapper.zadd(redisClient, redisArgs);
 
                 socket.join(payload._id);
                 socket.join(data.session);
@@ -95,6 +150,10 @@ export const setIoServer = function (server: import('http').Server) {
                     { new: true }
                 );
                 assert(updatedClassSession);
+
+                // remove from redis connection manager
+                await redisWrapper.zrem(redisClient,
+                    [data.session, payload._id, socket.id].join('-'));
 
                 socket.leave(payload._id);
                 socket.leave(data.session);
@@ -247,8 +306,63 @@ export const setIoServer = function (server: import('http').Server) {
             }
         })
 
+        // TODO integrate with concentration data
+        socket.on('pingSession', async (data: socketData.Data) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session'])) {
+                    throw new Error();
+                };
+                const { payload } = await authSessionConnection(data);
+
+                const classSessionDoc = await ClassSession.findOne(
+                    {
+                        _id: data.session,
+                        status: "online",
+                        "userList.user": {
+                            $in: payload._id
+                        }
+                    }
+                )
+                assert.ok(classSessionDoc);
+
+                // update to redis connection manager
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                await redisWrapper.zadd(redisClient, redisArgs);
+            } catch (err) {
+                ioServer.to(socket.id).emit('error');
+                return;
+            }
+        })
+
+        // this event is for teacher to politely ask user(s) to disconnect
+        socket.on('requestDisconnection', async (data: socketData.ContentData) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session', 'sendTo'])) {
+                    throw new Error();
+                };
+                const { payload, isHost } = await authSessionConnection(data);
+                assert(isHost);
+
+                // users received deliverDisconnection has to send leaveSession event
+                ioServer.to(data.sendTo).emit('deliverDisconnection');
+            } catch (err) {
+                ioServer.to(socket.id).emit('error');
+                return;
+            }
+        })
+
         socket.on('disconnect', async () => {
             try {
+                // TODO consider user in multiple session
+                const filteredSessionDoc = await ClassSession.findOne(
+                    {
+                        status: "online",
+                        "userList.socket": {
+                            $in: socket.id
+                        }
+                    }
+                ).select({ userList: { $elemMatch: { socket: socket.id } } })
+
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
                         status: "online",
@@ -263,13 +377,23 @@ export const setIoServer = function (server: import('http').Server) {
                     },
                     { new: true }
                 );
-                if (updatedClassSession) {
+
+                if (filteredSessionDoc && updatedClassSession) {
+                    const filteredSessionJson = filteredSessionDoc.toJSON();
+                    const [disconnectedUser] = filteredSessionJson.userList;
                     const updateJSON = updatedClassSession.toJSON();
                     const { userList, _id } = updateJSON;
+
+                    socket.leave(updateJSON._id);
+                    socket.leave(disconnectedUser.user);
+
+                    // remove from redis connection manager
+                    await redisWrapper.zrem(redisClient,
+                        [updateJSON._id, disconnectedUser.user, socket.id].join('-'));
                     ioServer.to(_id).emit('sendUserList', userList);
                 }
             } catch (err) {
-                console.error(err); // TODO log error
+                console.log(err); // TODO log error
                 return;
             }
         })
