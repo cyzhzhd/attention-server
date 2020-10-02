@@ -1,4 +1,5 @@
 import fs from "fs";
+import cors from "cors";
 import express from "express";
 import logger from "morgan";
 import path from "path";
@@ -18,11 +19,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/download", express.static(path.join(__dirname, "../static")));
-
 app.use("/user", userRouter);
 app.use("/class", classRouter);
 app.use("/session", classSessionRouter);
+
+app.use(cors());
+app.use("/download", express.static(path.join(__dirname, "../static")));
 
 app.use(undefinedMethodHandler);
 app.use(errorHandler);
