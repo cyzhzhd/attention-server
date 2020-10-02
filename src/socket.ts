@@ -30,7 +30,7 @@ function checkData(data: Object, checkList: Array<string>): boolean {
 }
 
 export const setIoServer = function (server: import('http').Server) {
-    const ioServer = io(server);
+    const ioServer = io(server, { transports: ['websocket'] });
     const _adapter = socketRedis({ host: REDIS_HOST, port: REDIS_PORT });
     ioServer.adapter(_adapter);
     const adapter = ioServer.of('/').adapter as RedisAdapter;
@@ -393,6 +393,9 @@ export const setIoServer = function (server: import('http').Server) {
                     // remove from redis connection manager
                     await redisWrapper.zrem(redisClient,
                         [updateJSON._id, disconnectedUser.user, socket.id].join('-'));
+
+                    // users received deliverDisconnection has to send leaveSession event
+                    ioServer.to(disconnectedUser.user).emit('deliverDisconnection');
                     ioServer.to(_id).emit('sendUserList', userList);
                 }
             } catch (err) {
