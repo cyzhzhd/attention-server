@@ -87,7 +87,7 @@ function checkData(data, checkList) {
 }
 exports.setIoServer = function (server) {
     var _this = this;
-    var ioServer = socket_io_1.default(server);
+    var ioServer = socket_io_1.default(server, { transports: ['websocket'] });
     var _adapter = socket_io_redis_1.default({ host: REDIS_HOST, port: REDIS_PORT });
     ioServer.adapter(_adapter);
     var adapter = ioServer.of('/').adapter;
@@ -112,7 +112,7 @@ exports.setIoServer = function (server) {
                         return __generator(this, function (_b) {
                             switch (_b.label) {
                                 case 0:
-                                    _a = disconnection.split('-'), session = _a[0], user = _a[1], socket = _a[2];
+                                    _a = disconnection.split('\:'), session = _a[0], user = _a[1], socket = _a[2];
                                     return [4 /*yield*/, ClassSession.findOneAndUpdate({
                                             _id: session,
                                             status: "online",
@@ -193,7 +193,7 @@ exports.setIoServer = function (server) {
                     case 2:
                         updatedClassSession = _b.sent();
                         assert_1.default(updatedClassSession);
-                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
                         return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
                     case 3:
                         _b.sent();
@@ -235,7 +235,7 @@ exports.setIoServer = function (server) {
                         updatedClassSession = _a.sent();
                         assert_1.default(updatedClassSession);
                         // remove from redis connection manager
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [data.session, payload._id, socket.id].join('-'))];
+                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [data.session, payload._id, socket.id].join('\:'))];
                     case 3:
                         // remove from redis connection manager
                         _a.sent();
@@ -454,7 +454,7 @@ exports.setIoServer = function (server) {
                     case 2:
                         classSessionDoc = _a.sent();
                         assert_1.default.ok(classSessionDoc);
-                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
                         return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
                     case 3:
                         _a.sent();
@@ -527,7 +527,7 @@ exports.setIoServer = function (server) {
                         socket.leave(updateJSON._id);
                         socket.leave(disconnectedUser.user);
                         // remove from redis connection manager
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [updateJSON._id, disconnectedUser.user, socket.id].join('-'))];
+                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [updateJSON._id, disconnectedUser.user, socket.id].join('\:'))];
                     case 3:
                         // remove from redis connection manager
                         _a.sent();

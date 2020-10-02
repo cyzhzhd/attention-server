@@ -1,5 +1,14 @@
 ## Team 183 Backend & DB
 
+### Running Server
+
+~~~
+# by docker-compose
+$ docker-compose up -d
+# by pm2
+$ pm2 start ./ecosystem.config.js
+~~~
+
 ### Server URI
 * __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__   
 * Instance1: 3.35.25.72:3000   
