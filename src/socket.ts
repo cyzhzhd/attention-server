@@ -9,7 +9,7 @@ import * as redisWrapper from "./helpers/redisWrapper";
 import { authSessionConnection } from './helpers/authSocket'
 import socketRedis, { RedisAdapter } from "socket.io-redis";
 import { classSessionModel } from "./models/classSessionModel";
-import { chatModel } from "./models/chatModel"
+import { chatModel } from "./models/chatModel";
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 const REDIS_HOST = process.env.REDIS_HOST as string;

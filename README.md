@@ -1,22 +1,29 @@
 ## Team 183 Backend & DB
 
-### Server URI
+### How TO
+
+~~~
+# by docker-compose
+$ docker-compose up -d
+
+# by pm2
+$ pm2 start ./ecosystem.config.js
+~~~
+
+##### Server URI
 * __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__   
 * Instance1: 3.35.25.72:3000   
 * Instance2: 52.78.160.20:3000   
 
 (TLS not enabled)
 
-### MongoDB
-* __Replicaset name__: rs0
+##### MongoDB
+* __Replicaset name__: rs0  
+* __Replicaset url__: mongodb://172.31.43.190:27017,172.31.7.143:27017,172.31.1.151:27017/?replicaSet=rs0
 
-__Instance 1__: 52.78.146.191  
-__Instance 2__: 3.34.139.112  
-__Instance 3__: 3.34.137.172  
+(VPC connection only)
 
-(ACL connection only)
-
-### Redis Cluster
+##### Redis Cluster
 * __Primary Host__:team183-redis.lbxaz4.ng.0001.apn2.cache.amazonaws.com:6379    
 
 (VPC connection only)
