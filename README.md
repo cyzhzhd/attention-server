@@ -17,13 +17,10 @@ $ pm2 start ./ecosystem.config.js
 (TLS not enabled)
 
 ### MongoDB
-* __Replicaset name__: rs0
+* __Replicaset name__: rs0  
+* __Replicaset url__:"mongodb://172.31.43.190:27017,172.31.7.143:27017,172.31.1.151:27017/?replicaSet=rs0"  
 
-__Instance 1__: 52.78.146.191  
-__Instance 2__: 3.34.139.112  
-__Instance 3__: 3.34.137.172  
-
-(ACL connection only)
+(VPC connection only)
 
 ### Redis Cluster
 * __Primary Host__:team183-redis.lbxaz4.ng.0001.apn2.cache.amazonaws.com:6379    
