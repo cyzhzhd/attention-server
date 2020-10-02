@@ -49,7 +49,7 @@ export const setIoServer = function (server: import('http').Server) {
 
             // iterate all disconnected user
             for (const disconnection of disconnections) {
-                const [session, user, socket] = disconnection.split('-');
+                const [session, user, socket] = disconnection.split('/');
 
                 // remove from mongodb
                 // TODO batch job within same session
@@ -120,7 +120,7 @@ export const setIoServer = function (server: import('http').Server) {
                 assert(updatedClassSession);
 
                 // add to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('/')];
                 await redisWrapper.zadd(redisClient, redisArgs);
 
                 socket.join(payload._id);
@@ -156,7 +156,7 @@ export const setIoServer = function (server: import('http').Server) {
 
                 // remove from redis connection manager
                 await redisWrapper.zrem(redisClient,
-                    [data.session, payload._id, socket.id].join('-'));
+                    [data.session, payload._id, socket.id].join('/'));
 
                 socket.leave(payload._id);
                 socket.leave(data.session);
@@ -329,7 +329,7 @@ export const setIoServer = function (server: import('http').Server) {
                 assert.ok(classSessionDoc);
 
                 // update to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('-')];
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('/')];
                 await redisWrapper.zadd(redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('error');
@@ -392,10 +392,8 @@ export const setIoServer = function (server: import('http').Server) {
 
                     // remove from redis connection manager
                     await redisWrapper.zrem(redisClient,
-                        [updateJSON._id, disconnectedUser.user, socket.id].join('-'));
+                        [updateJSON._id, disconnectedUser.user, socket.id].join('/'));
 
-                    // users received deliverDisconnection has to send leaveSession event
-                    ioServer.to(disconnectedUser.user).emit('deliverDisconnection');
                     ioServer.to(_id).emit('sendUserList', userList);
                 }
             } catch (err) {
