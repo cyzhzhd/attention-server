@@ -29,23 +29,21 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         try {
             const [teacherDoc, studentDoc] = await Promise.all([
                 // Check user class access
-                new Promise<mongoose.Document | null>(async (resolve) => {
-                    const teacherDoc = await User.findOne(
+                new Promise<mongoose.Document | null>((resolve) => {
+                    User.findOne(
                         {
                             _id: req.user._id,
                             ownClasses: { $in: req.query.class }
                         }
-                    );
-                    resolve(teacherDoc);
+                    ).then((teacherDoc) => { resolve(teacherDoc); });
                 }),
-                new Promise<mongoose.Document | null>(async (resolve) => {
-                    const studentDoc = await User.findOne(
+                new Promise<mongoose.Document | null>((resolve) => {
+                    User.findOne(
                         {
                             _id: req.user._id,
                             classes: { $in: req.query.class }
                         }
-                    );
-                    resolve(studentDoc);
+                    ).then((studentDoc) => { resolve(studentDoc); });
                 }),
             ])
             assert.ok(teacherDoc || studentDoc);

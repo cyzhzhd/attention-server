@@ -101,7 +101,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 2, , 3]);
-                emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
                 if (!emailRegex.test(req.body.email)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_email'))];
                 }

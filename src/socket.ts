@@ -20,7 +20,8 @@ const redisClient = redis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 const ClassSession = mongoose.model('ClassSession', classSessionModel);
 const Chat = mongoose.model('Chat', chatModel);
 
-function checkData(data: Object, checkList: Array<string>): boolean {
+function checkData(data: (socketData.ContentData | socketData.Data),
+    checkList: Array<string>): boolean {
     for (const check of checkList) {
         if (!(check in data)) {
             return false;
@@ -29,7 +30,7 @@ function checkData(data: Object, checkList: Array<string>): boolean {
     return true;
 }
 
-export const setIoServer = function (server: import('http').Server) {
+export const setIoServer = function (server: import('http').Server): void {
     const ioServer = io(server, { transports: ['websocket'] });
     const _adapter = socketRedis({ host: REDIS_HOST, port: REDIS_PORT });
     ioServer.adapter(_adapter);
@@ -49,7 +50,7 @@ export const setIoServer = function (server: import('http').Server) {
 
             // iterate all disconnected user
             for (const disconnection of disconnections) {
-                const [session, user, socket] = disconnection.split('\:');
+                const [session, user, socket] = disconnection.split(':');
 
                 // remove from mongodb
                 // TODO batch job within same session
@@ -76,7 +77,7 @@ export const setIoServer = function (server: import('http').Server) {
 
                     // leave socket room
                     [session, user].forEach((room) => {
-                        adapter.remoteLeave(socket, room, (err) => { })
+                        adapter.remoteLeave(socket, room, () => { return; })
                     });
                 }
             }
@@ -120,7 +121,7 @@ export const setIoServer = function (server: import('http').Server) {
                 assert(updatedClassSession);
 
                 // add to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
 
                 socket.join(payload._id);
@@ -156,7 +157,7 @@ export const setIoServer = function (server: import('http').Server) {
 
                 // remove from redis connection manager
                 await redisWrapper.zrem(redisClient,
-                    [data.session, payload._id, socket.id].join('\:'));
+                    [data.session, payload._id, socket.id].join(':'));
 
                 socket.leave(payload._id);
                 socket.leave(data.session);
@@ -329,7 +330,7 @@ export const setIoServer = function (server: import('http').Server) {
                 assert.ok(classSessionDoc);
 
                 // update to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('error');
@@ -343,7 +344,7 @@ export const setIoServer = function (server: import('http').Server) {
                 if (!checkData(data, ['token', 'class', 'session', 'sendTo'])) {
                     throw new Error();
                 };
-                const { payload, isHost } = await authSessionConnection(data);
+                const { isHost } = await authSessionConnection(data);
                 assert(isHost);
 
                 // users received deliverDisconnection has to send leaveSession event
@@ -392,7 +393,7 @@ export const setIoServer = function (server: import('http').Server) {
 
                     // remove from redis connection manager
                     await redisWrapper.zrem(redisClient,
-                        [updateJSON._id, disconnectedUser.user, socket.id].join('\:'));
+                        [updateJSON._id, disconnectedUser.user, socket.id].join(':'));
 
                     ioServer.to(_id).emit('sendUserList', userList);
                 }

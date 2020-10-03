@@ -69,36 +69,18 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
                 _b.trys.push([1, 4, , 5]);
                 return [4 /*yield*/, Promise.all([
                         // Check user class access
-                        new Promise(function (resolve) { return __awaiter(void 0, void 0, void 0, function () {
-                            var teacherDoc;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0: return [4 /*yield*/, User.findOne({
-                                            _id: req.user._id,
-                                            ownClasses: { $in: req.query.class }
-                                        })];
-                                    case 1:
-                                        teacherDoc = _a.sent();
-                                        resolve(teacherDoc);
-                                        return [2 /*return*/];
-                                }
-                            });
-                        }); }),
-                        new Promise(function (resolve) { return __awaiter(void 0, void 0, void 0, function () {
-                            var studentDoc;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0: return [4 /*yield*/, User.findOne({
-                                            _id: req.user._id,
-                                            classes: { $in: req.query.class }
-                                        })];
-                                    case 1:
-                                        studentDoc = _a.sent();
-                                        resolve(studentDoc);
-                                        return [2 /*return*/];
-                                }
-                            });
-                        }); }),
+                        new Promise(function (resolve) {
+                            User.findOne({
+                                _id: req.user._id,
+                                ownClasses: { $in: req.query.class }
+                            }).then(function (teacherDoc) { resolve(teacherDoc); });
+                        }),
+                        new Promise(function (resolve) {
+                            User.findOne({
+                                _id: req.user._id,
+                                classes: { $in: req.query.class }
+                            }).then(function (studentDoc) { resolve(studentDoc); });
+                        }),
                     ])];
             case 2:
                 _a = _b.sent(), teacherDoc = _a[0], studentDoc = _a[1];

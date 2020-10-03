@@ -54,43 +54,24 @@ var User = mongoose_1.default.model('User', userModel_1.userModel);
 function authSessionConnection(data) {
     return __awaiter(this, void 0, void 0, function () {
         var payload, _a, classDoc, userDoc, userJson, ownClasses, classes;
-        var _this = this;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     payload = jsonwebtoken_1.default.verify(data.token, PRIVATE_KEY, { algorithms: ["HS256"] });
                     return [4 /*yield*/, Promise.all([
                             // Check class and session exists
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var classDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, Class.findOne({
-                                                _id: data.class,
-                                                session: data.session
-                                            })];
-                                        case 1:
-                                            classDoc = _a.sent();
-                                            resolve(classDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
+                            new Promise(function (resolve) {
+                                Class.findOne({
+                                    _id: data.class,
+                                    session: data.session
+                                }).then(function (classDoc) { resolve(classDoc); });
+                            }),
                             // Check user class access
-                            new Promise(function (resolve) { return __awaiter(_this, void 0, void 0, function () {
-                                var userDoc;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0: return [4 /*yield*/, User.findOne({
-                                                _id: payload._id,
-                                            })];
-                                        case 1:
-                                            userDoc = _a.sent();
-                                            resolve(userDoc);
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            }); }),
+                            new Promise(function (resolve) {
+                                User.findOne({
+                                    _id: payload._id,
+                                }).then(function (userDoc) { resolve(userDoc); });
+                            }),
                         ])];
                 case 1:
                     _a = _b.sent(), classDoc = _a[0], userDoc = _a[1];

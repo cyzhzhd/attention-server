@@ -19,6 +19,9 @@ app.use(morgan_1.default("common", {
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+app.get('/', function (req, res) {
+    res.status(200).send("server is working");
+});
 app.use("/user", user_1.default);
 app.use("/class", class_1.default);
 app.use("/session", session_1.default);

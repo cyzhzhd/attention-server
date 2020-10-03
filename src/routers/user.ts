@@ -51,7 +51,7 @@ router.post('/login', async (req, res, next) => {
 router.post('/account', async (req, res, next) => {
     try {
         // Validate email and password
-        const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
         if (!emailRegex.test(req.body.email)) {
             return next(new ErrorHandler(400, 'invalid_email'));
         }

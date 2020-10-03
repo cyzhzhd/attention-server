@@ -21,23 +21,21 @@ export async function authSessionConnection(data: socketData.Data):
 
     const [classDoc, userDoc] = await Promise.all([
         // Check class and session exists
-        new Promise<mongoose.Document | null>(async (resolve) => {
-            const classDoc = await Class.findOne(
+        new Promise<mongoose.Document | null>((resolve) => {
+            Class.findOne(
                 {
                     _id: data.class,
                     session: data.session
                 }
-            );
-            resolve(classDoc);
+            ).then((classDoc) => { resolve(classDoc); });
         }),
         // Check user class access
-        new Promise<mongoose.Document | null>(async (resolve) => {
-            const userDoc = await User.findOne(
+        new Promise<mongoose.Document | null>((resolve) => {
+            User.findOne(
                 {
                     _id: payload._id,
                 }
-            );
-            resolve(userDoc);
+            ).then((userDoc) => { resolve(userDoc) });
         }),
     ])
     assert.ok(classDoc && userDoc);

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 
 export class ErrorHandler extends Error {
     status: number;
@@ -11,19 +11,22 @@ export class ErrorHandler extends Error {
     }
 }
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction): void => {
+export const errorHandler = (err: ErrorHandler, req: Request,
+    res: Response, next: NextFunction): void => {
     if ("status" in err && "code" in err) {
         const { status, code } = err;
         res.status(status).send(code);
     }
     else if ("status" in err) {
-        res.sendStatus(err.status);
+        const { status } = err;
+        res.sendStatus(status);
     }
     else {
         res.status(500).send("undefiend_error_occured");
     }
 };
 
-export const undefinedMethodHandler = (req: Request, res: Response, next: NextFunction): void => {
+export const undefinedMethodHandler = (req: Request, res: Response,
+    next: NextFunction): void => {
     res.status(405).send("undefined_method");
 };

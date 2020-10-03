@@ -112,7 +112,7 @@ exports.setIoServer = function (server) {
                         return __generator(this, function (_b) {
                             switch (_b.label) {
                                 case 0:
-                                    _a = disconnection.split('\:'), session = _a[0], user = _a[1], socket = _a[2];
+                                    _a = disconnection.split(':'), session = _a[0], user = _a[1], socket = _a[2];
                                     return [4 /*yield*/, ClassSession.findOneAndUpdate({
                                             _id: session,
                                             status: "online",
@@ -130,7 +130,7 @@ exports.setIoServer = function (server) {
                                         ioServer.to(user).emit('deliverDisconnection');
                                         // leave socket room
                                         [session, user].forEach(function (room) {
-                                            adapter.remoteLeave(socket, room, function (err) { });
+                                            adapter.remoteLeave(socket, room, function () { return; });
                                         });
                                     }
                                     return [2 /*return*/];
@@ -193,7 +193,7 @@ exports.setIoServer = function (server) {
                     case 2:
                         updatedClassSession = _b.sent();
                         assert_1.default(updatedClassSession);
-                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
+                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
                         return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
                     case 3:
                         _b.sent();
@@ -235,7 +235,7 @@ exports.setIoServer = function (server) {
                         updatedClassSession = _a.sent();
                         assert_1.default(updatedClassSession);
                         // remove from redis connection manager
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [data.session, payload._id, socket.id].join('\:'))];
+                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [data.session, payload._id, socket.id].join(':'))];
                     case 3:
                         // remove from redis connection manager
                         _a.sent();
@@ -454,7 +454,7 @@ exports.setIoServer = function (server) {
                     case 2:
                         classSessionDoc = _a.sent();
                         assert_1.default.ok(classSessionDoc);
-                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join('\:')];
+                        redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
                         return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
                     case 3:
                         _a.sent();
@@ -469,24 +469,24 @@ exports.setIoServer = function (server) {
         }); });
         // this event is for teacher to politely ask user(s) to disconnect
         socket.on('requestDisconnection', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, payload, isHost, err_10;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var isHost, err_10;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
-                        _b.trys.push([0, 2, , 3]);
+                        _a.trys.push([0, 2, , 3]);
                         if (!checkData(data, ['token', 'class', 'session', 'sendTo'])) {
                             throw new Error();
                         }
                         ;
                         return [4 /*yield*/, authSocket_1.authSessionConnection(data)];
                     case 1:
-                        _a = _b.sent(), payload = _a.payload, isHost = _a.isHost;
+                        isHost = (_a.sent()).isHost;
                         assert_1.default(isHost);
                         // users received deliverDisconnection has to send leaveSession event
                         ioServer.to(data.sendTo).emit('deliverDisconnection');
                         return [3 /*break*/, 3];
                     case 2:
-                        err_10 = _b.sent();
+                        err_10 = _a.sent();
                         ioServer.to(socket.id).emit('error');
                         return [2 /*return*/];
                     case 3: return [2 /*return*/];
@@ -527,7 +527,7 @@ exports.setIoServer = function (server) {
                         socket.leave(updateJSON._id);
                         socket.leave(disconnectedUser.user);
                         // remove from redis connection manager
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [updateJSON._id, disconnectedUser.user, socket.id].join('\:'))];
+                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [updateJSON._id, disconnectedUser.user, socket.id].join(':'))];
                     case 3:
                         // remove from redis connection manager
                         _a.sent();

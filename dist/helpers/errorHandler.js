@@ -31,7 +31,8 @@ exports.errorHandler = function (err, req, res, next) {
         res.status(status_1).send(code);
     }
     else if ("status" in err) {
-        res.sendStatus(err.status);
+        var status_2 = err.status;
+        res.sendStatus(status_2);
     }
     else {
         res.status(500).send("undefiend_error_occured");
