@@ -3,20 +3,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var fs_1 = __importDefault(require("fs"));
 var cors_1 = __importDefault(require("cors"));
 var express_1 = __importDefault(require("express"));
 var morgan_1 = __importDefault(require("morgan"));
 var path_1 = __importDefault(require("path"));
+var dotenv_1 = __importDefault(require("dotenv"));
 var user_1 = __importDefault(require("./routers/user"));
 var class_1 = __importDefault(require("./routers/class"));
 var session_1 = __importDefault(require("./routers/session"));
 var errorHandler_1 = require("./helpers/errorHandler");
+dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
+var ENV = process.env.ENV;
 var app = express_1.default();
-app.use(morgan_1.default("dev"));
-app.use(morgan_1.default("common", {
-    stream: fs_1.default.createWriteStream("./access.log", { flags: "a" }),
-}));
+var format = (ENV == "DEV") ? "dev" : "common";
+app.use(morgan_1.default(format));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.get('/', function (req, res) {

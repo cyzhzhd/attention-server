@@ -3,19 +3,19 @@ import cors from "cors";
 import express from "express";
 import logger from "morgan";
 import path from "path";
+import dotenv from "dotenv";
 import userRouter from "./routers/user";
 import classRouter from "./routers/class";
 import classSessionRouter from "./routers/session";
 import { undefinedMethodHandler, errorHandler } from "./helpers/errorHandler";
 
+dotenv.config({ path: path.join(__dirname, '../.env') });
+const ENV = process.env.ENV as string;
+
 const app = express();
 
-app.use(logger("dev"));
-app.use(
-  logger("common", {
-    stream: fs.createWriteStream("./access.log", { flags: "a" }),
-  })
-);
+const format = (ENV == "DEV") ? "dev" : "common";
+app.use(logger(format));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
