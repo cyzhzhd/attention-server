@@ -2,15 +2,10 @@ image: node:14.5.0
 
 before_script:
   - apt-get update -qq && apt-get install
-
-download_dependency:
-  script: yarn
-  only:
-    changes:
-      - ./
+  - yarn
 
 build:
-  script: yarn build
+  script: yarn run build
   only:
     changes:
       - ./
