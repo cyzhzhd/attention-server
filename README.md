@@ -11,11 +11,11 @@ $ pm2 start ./ecosystem.config.js
 ~~~
 
 ##### Server URI
-* __Primary(LB): backendLB-d5c9491c188b429e.elb.ap-northeast-2.amazonaws.com:3000__   
+* __Primary(LB): https://be.swm183.com:3000__   
 * Instance1: 3.35.25.72:3000   
 * Instance2: 52.78.160.20:3000   
 
-(TLS not enabled)
+(HTTPS(TLS) enabled)
 
 ##### MongoDB
 * __Replicaset name__: rs0  
