@@ -3,12 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatModel = void 0;
+exports.concentrationModel = void 0;
 var mongoose_1 = __importDefault(require("mongoose"));
-exports.chatModel = new mongoose_1.default.Schema({
+exports.concentrationModel = new mongoose_1.default.Schema({
     id: { type: mongoose_1.default.Schema.Types.ObjectId },
+    class: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     session: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     user: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     date: { type: Date, required: true },
-    content: { type: String, required: true }
+    status: {
+        absence: { type: Number, required: true },
+        sleep: { type: Number, required: true },
+        turnHead: { type: Number, required: true },
+        focusPoint: { type: Number, required: true },
+    }
 });

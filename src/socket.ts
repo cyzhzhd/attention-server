@@ -9,6 +9,7 @@ import * as redisWrapper from "./helpers/redisWrapper";
 import { authSessionConnection } from './helpers/authSocket'
 import socketRedis, { RedisAdapter } from "socket.io-redis";
 import { classSessionModel } from "./models/classSessionModel";
+import { concentrationModel } from "./models/concentrationModel";
 import { chatModel } from "./models/chatModel";
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -17,10 +18,12 @@ const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
 
 const redisClient = redis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 
+const Concentration = mongoose.model('Concentration', concentrationModel);
 const ClassSession = mongoose.model('ClassSession', classSessionModel);
 const Chat = mongoose.model('Chat', chatModel);
 
-function checkData(data: (socketData.ContentData | socketData.Data),
+function checkData(data:
+    (socketData.ContentData | socketData.Data | socketData.ConcentrationData),
     checkList: Array<string>): boolean {
     for (const check of checkList) {
         if (!(check in data)) {
@@ -70,7 +73,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 if (updatedClassSession) {
                     // emit new userlist
                     const userList = updatedClassSession.toJSON().userList;
-                    ioServer.to(session).emit('sendUserList', userList);
+                    ioServer.to(session).emit('deliverUserList', userList);
 
                     // users received deliverDisconnection has to send leaveSession event
                     ioServer.to(user).emit('deliverDisconnection');
@@ -121,16 +124,17 @@ export const setIoServer = function (server: import('http').Server): void {
                 assert(updatedClassSession);
 
                 // add to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
+                const redisArgs = [Date.now(),
+                [data.session, payload._id, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
 
                 socket.join(payload._id);
                 socket.join(data.session);
 
                 const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('sendUserList', userList);
+                ioServer.to(data.session).emit('deliverUserList', userList);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -163,9 +167,9 @@ export const setIoServer = function (server: import('http').Server): void {
                 socket.leave(data.session);
 
                 const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('sendUserList', userList);
+                ioServer.to(data.session).emit('deliverUserList', userList);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -191,14 +195,17 @@ export const setIoServer = function (server: import('http').Server): void {
                             "userList.$[elem].isSharingScreen": true
                         },
                     },
-                    { arrayFilters: [{ "elem.user": { $eq: payload._id } }], new: true }
+                    {
+                        arrayFilters: [{ "elem.user": { $eq: payload._id } }],
+                        new: true
+                    }
                 );
                 assert(updatedClassSession);
 
                 const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('sendUserList', userList);
+                ioServer.to(data.session).emit('deliverUserList', userList);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -227,9 +234,9 @@ export const setIoServer = function (server: import('http').Server): void {
                 assert(updatedClassSession);
 
                 const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('sendUserList', userList);
+                ioServer.to(data.session).emit('deliverUserList', userList);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -248,7 +255,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 }
                 ioServer.to(data.sendTo).emit('deliverSignal', signalContent);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -264,9 +271,9 @@ export const setIoServer = function (server: import('http').Server): void {
                 assert(classSessionDoc);
 
                 const userList = classSessionDoc.toJSON().userList;
-                ioServer.to(socket.id).emit('sendUserList', userList);
+                ioServer.to(socket.id).emit('deliverUserList', userList);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -286,7 +293,6 @@ export const setIoServer = function (server: import('http').Server): void {
                             $in: payload._id
                         }
                     },
-
                 );
                 assert.ok(classSessionDoc);
 
@@ -305,12 +311,59 @@ export const setIoServer = function (server: import('http').Server): void {
                 }
                 ioServer.to(data.session).emit('deliverChat', chatContent);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
 
-        // TODO integrate with concentration data
+        // this socket event also does ping
+        socket.on('sendConcentration', async (data: socketData.ConcentrationData) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session'])) {
+                    throw new Error();
+                };
+                const { payload, isHost } = await authSessionConnection(data);
+
+                const classSessionDoc = await ClassSession.findOne(
+                    {
+                        _id: data.session,
+                        status: "online",
+                        "userList.user": {
+                            $in: payload._id
+                        }
+                    },
+                );
+                assert.ok(classSessionDoc);
+                console.log(data.content);
+                if (!isHost) {
+                    const concentrationDoc = await Concentration.create({
+                        class: data.class,
+                        session: data.session,
+                        user: payload._id,
+                        date: Date.now(),
+                        status: data.content,
+                    });
+                    assert.ok(concentrationDoc);
+
+                    const concentrationContent = {
+                        user: payload._id,
+                        name: payload.name,
+                        content: data.content
+                    }
+
+                    const teacher = classSessionDoc.toJSON().teacher;
+                    ioServer.to(teacher).emit('deliverConcentration', concentrationContent);
+                }
+
+                // update to redis connection manager
+                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
+                await redisWrapper.zadd(redisClient, redisArgs);
+            } catch (err) {
+                ioServer.to(socket.id).emit('deliverError');
+                return;
+            }
+        })
+
         socket.on('pingSession', async (data: socketData.Data) => {
             try {
                 if (!checkData(data, ['token', 'class', 'session'])) {
@@ -333,7 +386,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -350,7 +403,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 // users received deliverDisconnection has to send leaveSession event
                 ioServer.to(data.sendTo).emit('deliverDisconnection');
             } catch (err) {
-                ioServer.to(socket.id).emit('error');
+                ioServer.to(socket.id).emit('deliverError');
                 return;
             }
         })
@@ -395,7 +448,7 @@ export const setIoServer = function (server: import('http').Server): void {
                     await redisWrapper.zrem(redisClient,
                         [updateJSON._id, disconnectedUser.user, socket.id].join(':'));
 
-                    ioServer.to(_id).emit('sendUserList', userList);
+                    ioServer.to(_id).emit('deliverUserList', userList);
                 }
             } catch (err) {
                 console.log(err); // TODO log error
