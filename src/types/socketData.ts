@@ -17,3 +17,11 @@ export interface ConcentrationData extends Data {
         focusPoint: number
     }
 }
+
+export interface User {
+    user: string,
+    socket: string,
+    name: string,
+    isTeacher: boolean,
+    isSharingScreen: boolean
+}

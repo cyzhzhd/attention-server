@@ -33,6 +33,17 @@ function checkData(data:
     return true;
 }
 
+function emitUserStateChange(classSessionDoc: mongoose.Document,
+    sessionId: string, ioServer: io.Server) {
+    const userList = classSessionDoc.toJSON().userList as Array<socketData.User>;
+    const ScreenSharingUser = userList.find(user => user.isSharingScreen === true);
+    const ScreenSharingUserId = (ScreenSharingUser === undefined) ?
+        null : ScreenSharingUser.user;
+
+    ioServer.to(sessionId).emit('deliverUserList', userList);
+    ioServer.to(sessionId).emit('deliverScreenSharingUser', ScreenSharingUserId);
+}
+
 export const setIoServer = function (server: import('http').Server): void {
     const ioServer = io(server, { transports: ['websocket'] });
     const _adapter = socketRedis({ host: REDIS_HOST, port: REDIS_PORT });
@@ -53,7 +64,7 @@ export const setIoServer = function (server: import('http').Server): void {
 
             // iterate all disconnected user
             for (const disconnection of disconnections) {
-                const [session, user, socket] = disconnection.split(':');
+                const [session, socket] = disconnection.split(':');
 
                 // remove from mongodb
                 // TODO batch job within same session
@@ -64,22 +75,20 @@ export const setIoServer = function (server: import('http').Server): void {
                     },
                     {
                         $pull: {
-                            userList: { user: user }
+                            userList: { socket: socket }
                         }
                     },
                     { new: true }
                 );
 
                 if (updatedClassSession) {
-                    // emit new userlist
-                    const userList = updatedClassSession.toJSON().userList;
-                    ioServer.to(session).emit('deliverUserList', userList);
+                    emitUserStateChange(updatedClassSession, session, ioServer);
 
                     // users received deliverDisconnection has to send leaveSession event
-                    ioServer.to(user).emit('deliverDisconnection');
+                    ioServer.to(socket).emit('deliverDisconnection');
 
                     // leave socket room
-                    [session, user].forEach((room) => {
+                    [session, socket].forEach((room) => {
                         adapter.remoteLeave(socket, room, () => { return; })
                     });
                 }
@@ -125,14 +134,13 @@ export const setIoServer = function (server: import('http').Server): void {
 
                 // add to redis connection manager
                 const redisArgs = [Date.now(),
-                [data.session, payload._id, socket.id].join(':')];
+                [data.session, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
 
                 socket.join(payload._id);
                 socket.join(data.session);
 
-                const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('deliverUserList', userList);
+                emitUserStateChange(updatedClassSession, data.session, ioServer);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -159,15 +167,14 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
                 assert(updatedClassSession);
 
-                // remove from redis connection manager
                 await redisWrapper.zrem(redisClient,
-                    [data.session, payload._id, socket.id].join(':'));
+                    [data.session, socket.id].join(':'));
 
+                emitUserStateChange(updatedClassSession, data.session, ioServer);
+
+                // leave socket room
                 socket.leave(payload._id);
                 socket.leave(data.session);
-
-                const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('deliverUserList', userList);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -202,8 +209,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
                 assert(updatedClassSession);
 
-                const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('deliverUserList', userList);
+                emitUserStateChange(updatedClassSession, data.session, ioServer);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -233,8 +239,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
                 assert(updatedClassSession);
 
-                const userList = updatedClassSession.toJSON().userList;
-                ioServer.to(data.session).emit('deliverUserList', userList);
+                emitUserStateChange(updatedClassSession, data.session, ioServer);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -254,24 +259,6 @@ export const setIoServer = function (server: import('http').Server): void {
                     content: data.content
                 }
                 ioServer.to(data.sendTo).emit('deliverSignal', signalContent);
-            } catch (err) {
-                ioServer.to(socket.id).emit('deliverError');
-                return;
-            }
-        })
-
-        socket.on('getUserList', async (data: socketData.Data) => {
-            try {
-                if (!checkData(data, ['token', 'class', 'session'])) {
-                    throw new Error();
-                };
-                await authSessionConnection(data);
-
-                const classSessionDoc = await ClassSession.findById(data.session);
-                assert(classSessionDoc);
-
-                const userList = classSessionDoc.toJSON().userList;
-                ioServer.to(socket.id).emit('deliverUserList', userList);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -334,7 +321,7 @@ export const setIoServer = function (server: import('http').Server): void {
                     },
                 );
                 assert.ok(classSessionDoc);
-                console.log(data.content);
+
                 if (!isHost) {
                     const concentrationDoc = await Concentration.create({
                         class: data.class,
@@ -356,7 +343,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 }
 
                 // update to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
+                const redisArgs = [Date.now(), [data.session, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
@@ -383,7 +370,7 @@ export const setIoServer = function (server: import('http').Server): void {
                 assert.ok(classSessionDoc);
 
                 // update to redis connection manager
-                const redisArgs = [Date.now(), [data.session, payload._id, socket.id].join(':')];
+                const redisArgs = [Date.now(), [data.session, socket.id].join(':')];
                 await redisWrapper.zadd(redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
@@ -411,15 +398,6 @@ export const setIoServer = function (server: import('http').Server): void {
         socket.on('disconnect', async () => {
             try {
                 // TODO consider user in multiple session
-                const filteredSessionDoc = await ClassSession.findOne(
-                    {
-                        status: "online",
-                        "userList.socket": {
-                            $in: socket.id
-                        }
-                    }
-                ).select({ userList: { $elemMatch: { socket: socket.id } } })
-
                 const updatedClassSession = await ClassSession.findOneAndUpdate(
                     {
                         status: "online",
@@ -435,20 +413,14 @@ export const setIoServer = function (server: import('http').Server): void {
                     { new: true }
                 );
 
-                if (filteredSessionDoc && updatedClassSession) {
-                    const filteredSessionJson = filteredSessionDoc.toJSON();
-                    const [disconnectedUser] = filteredSessionJson.userList;
-                    const updateJSON = updatedClassSession.toJSON();
-                    const { userList, _id } = updateJSON;
+                if (updatedClassSession) {
+                    const classSessionJson = updatedClassSession.toJSON();
 
-                    socket.leave(updateJSON._id);
-                    socket.leave(disconnectedUser.user);
-
-                    // remove from redis connection manager
                     await redisWrapper.zrem(redisClient,
-                        [updateJSON._id, disconnectedUser.user, socket.id].join(':'));
+                        [classSessionJson._id, socket.id].join(':'));
 
-                    ioServer.to(_id).emit('deliverUserList', userList);
+                    emitUserStateChange(updatedClassSession, classSessionJson._id, ioServer);
+                    // leaving socket room doesn't needed
                 }
             } catch (err) {
                 console.log(err); // TODO log error
