@@ -13,14 +13,14 @@ const ENV = process.env.ENV as string;
 
 const app = express();
 
+// handle cors, cors preflight
+app.options('*', cors());
+app.use(cors());
+
 const format = (ENV == "DEV") ? "dev" : "common";
 app.use(logger(format));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use(cors({
-  origin: '*'
-}));
 
 app.get('/', (req, res) => {
   res.status(200).send("server is working");
