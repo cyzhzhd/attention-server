@@ -84,13 +84,13 @@ export const setIoServer = function (server: import('http').Server): void {
                 if (updatedClassSession) {
                     emitUserStateChange(updatedClassSession, session, ioServer);
 
-                    // users received deliverDisconnection has to send leaveSession event
-                    ioServer.to(socket).emit('deliverDisconnection');
-
                     // leave socket room
                     [session, socket].forEach((room) => {
                         adapter.remoteLeave(socket, room, () => { return; })
                     });
+
+                    // users received deliverDisconnection has to send leaveSession event
+                    ioServer.to(socket).emit('deliverDisconnection');
                 }
             }
         } catch (err) {
@@ -170,11 +170,11 @@ export const setIoServer = function (server: import('http').Server): void {
                 await redisWrapper.zrem(redisClient,
                     [data.session, socket.id].join(':'));
 
-                emitUserStateChange(updatedClassSession, data.session, ioServer);
-
                 // leave socket room
                 socket.leave(payload._id);
                 socket.leave(data.session);
+
+                emitUserStateChange(updatedClassSession, data.session, ioServer);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
