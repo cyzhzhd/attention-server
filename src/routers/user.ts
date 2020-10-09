@@ -46,7 +46,7 @@ router.post('/login', async (req, res, next) => {
     } catch (err) {
         return next(new ErrorHandler(400, 'login_failed'));
     }
-})
+});
 
 router.post('/account', async (req, res, next) => {
     try {
@@ -75,7 +75,7 @@ router.post('/account', async (req, res, next) => {
             return next(new ErrorHandler(400, 'register_failed'));
         }
     }
-})
+});
 
 router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
@@ -95,7 +95,7 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         } catch (err) {
             return next(new ErrorHandler(400, 'invalid_request'));
         }
-    })
+    });
 
 router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
@@ -144,7 +144,7 @@ router.post('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] })
         await session.commitTransaction();
         session.endSession();
         res.sendStatus(201);
-    })
+    });
 
 router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
@@ -185,6 +185,6 @@ router.delete('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
         await session.commitTransaction();
         session.endSession();
         res.sendStatus(200);
-    })
+    });
 
 export default router;

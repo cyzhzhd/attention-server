@@ -10,6 +10,7 @@ var path_1 = __importDefault(require("path"));
 var dotenv_1 = __importDefault(require("dotenv"));
 var user_1 = __importDefault(require("./routers/user"));
 var class_1 = __importDefault(require("./routers/class"));
+var concentration_1 = __importDefault(require("./routers/concentration"));
 var session_1 = __importDefault(require("./routers/session"));
 var errorHandler_1 = require("./helpers/errorHandler");
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
@@ -25,6 +26,7 @@ app.get('/', function (req, res) {
 app.use("/user", user_1.default);
 app.use("/class", class_1.default);
 app.use("/session", session_1.default);
+app.use("/concentration", concentration_1.default);
 app.use(cors_1.default());
 app.use("/download", express_1.default.static(path_1.default.join(__dirname, "../static")));
 app.use(errorHandler_1.undefinedMethodHandler);

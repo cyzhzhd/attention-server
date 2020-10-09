@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 import assert from "assert";
 import path from "path";
 import { userModel } from "../models/userModel";
-import { classModel } from "../models/classModel"
-import { ReqJwt } from "../types/reqjwt"
+import { classModel } from "../models/classModel";
+import { ReqJwt } from "../types/reqjwt";
 import { ErrorHandler } from "../helpers/errorHandler";
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -32,8 +32,7 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         } catch (err) {
             return next(new ErrorHandler(400, "class_found_failed"));
         }
-
-    })
+    });
 
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {

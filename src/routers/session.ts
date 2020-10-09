@@ -55,7 +55,6 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         } catch (err) {
             return next(new ErrorHandler(400, "session_found_failed"));
         }
-
     });
 
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),

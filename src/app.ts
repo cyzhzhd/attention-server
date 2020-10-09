@@ -5,6 +5,7 @@ import path from "path";
 import dotenv from "dotenv";
 import userRouter from "./routers/user";
 import classRouter from "./routers/class";
+import concentrationRouter from "./routers/concentration"
 import classSessionRouter from "./routers/session";
 import { undefinedMethodHandler, errorHandler } from "./helpers/errorHandler";
 
@@ -20,11 +21,12 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.status(200).send("server is working");
-})
+});
 
 app.use("/user", userRouter);
 app.use("/class", classRouter);
 app.use("/session", classSessionRouter);
+app.use("/concentration", concentrationRouter);
 
 app.use(cors());
 app.use("/download", express.static(path.join(__dirname, "../static")));
