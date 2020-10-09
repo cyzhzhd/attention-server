@@ -14,6 +14,10 @@ const ENV = process.env.ENV as string;
 
 const app = express();
 
+// handle cors, cors preflight
+app.options('*', cors());
+app.use(cors());
+
 const format = (ENV == "DEV") ? "dev" : "common";
 app.use(logger(format));
 app.use(express.json());
@@ -28,7 +32,6 @@ app.use("/class", classRouter);
 app.use("/session", classSessionRouter);
 app.use("/concentration", concentrationRouter);
 
-app.use(cors());
 app.use("/download", express.static(path.join(__dirname, "../static")));
 
 app.use(undefinedMethodHandler);
