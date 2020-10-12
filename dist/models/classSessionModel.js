@@ -26,5 +26,5 @@ exports.classSessionModel = new mongoose_1.default.Schema({
         type: String, required: true,
         enum: ['offline', 'online']
     },
-    quizes: [{ type: mongoose_1.default.Schema.Types.ObjectId }]
+    quizzes: [{ type: mongoose_1.default.Schema.Types.ObjectId }]
 });

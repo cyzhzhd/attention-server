@@ -7,6 +7,7 @@ import userRouter from "./routers/user";
 import classRouter from "./routers/class";
 import concentrationRouter from "./routers/concentration"
 import classSessionRouter from "./routers/session";
+import quizRouter from "./routers/quiz";
 import { undefinedMethodHandler, errorHandler } from "./helpers/errorHandler";
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -31,6 +32,7 @@ app.use("/user", userRouter);
 app.use("/class", classRouter);
 app.use("/session", classSessionRouter);
 app.use("/concentration", concentrationRouter);
+app.use("/quiz", quizRouter);
 
 app.use("/download", express.static(path.join(__dirname, "../static")));
 

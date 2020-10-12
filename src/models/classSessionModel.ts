@@ -21,5 +21,5 @@ export const classSessionModel = new mongoose.Schema({
         type: String, required: true,
         enum: ['offline', 'online']
     },
-    quizes: [{ type: mongoose.Schema.Types.ObjectId }]
+    quizzes: [{ type: mongoose.Schema.Types.ObjectId }]
 })
