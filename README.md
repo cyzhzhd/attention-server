@@ -29,7 +29,7 @@ $ pm2 start ./ecosystem.config.js
 (VPC connection only)
 
 ### Specifications
-* [RESTAPI - Swagger HUB](https://app.swaggerhub.com/apis/cyrojyro/swmteam-183/1.0.1#/)
+* [RESTAPI - Swagger HUB](https://app.swaggerhub.com/apis/cyrojyro/swmteam-183/1.0.2)
 * [Socket.io Specification](https://13.125.91.162/swmaestro/183-1/-/wikis/Socket.io-Specification)
 * [API 요청하기](https://13.125.91.162/swmaestro/183-1/-/wikis/REST-API-%EC%9A%94%EC%B2%AD)
 
