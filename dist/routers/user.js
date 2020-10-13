@@ -132,7 +132,7 @@ router.post('/account', function (req, res, next) { return __awaiter(void 0, voi
     });
 }); });
 router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, userDoc, userInfo, pickedInfo, err_3;
+    var req, userDoc, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -140,18 +140,12 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, User.findById(req.user._id)];
+                return [4 /*yield*/, User.findById(req.user._id)
+                        .select("_id email name isTeacher ownClasses classes")];
             case 2:
                 userDoc = _a.sent();
                 assert_1.default.ok(userDoc);
-                userInfo = userDoc.toJSON();
-                pickedInfo = (function (_a) {
-                    var _id = _a._id, email = _a.email, name = _a.name, isTeacher = _a.isTeacher, ownClasses = _a.ownClasses, classes = _a.classes;
-                    return ({
-                        _id: _id, email: email, name: name, isTeacher: isTeacher, ownClasses: ownClasses, classes: classes
-                    });
-                })(userInfo);
-                res.status(200).send(pickedInfo);
+                res.status(200).send(userDoc);
                 return [3 /*break*/, 4];
             case 3:
                 err_3 = _a.sent();

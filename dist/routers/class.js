@@ -47,10 +47,12 @@ var assert_1 = __importDefault(require("assert"));
 var path_1 = __importDefault(require("path"));
 var userModel_1 = require("../models/userModel");
 var classModel_1 = require("../models/classModel");
+var classSessionModel_1 = require("../models/classSessionModel");
 var errorHandler_1 = require("../helpers/errorHandler");
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '../../.env') });
 var router = express_1.default.Router();
 var PRIVATE_KEY = process.env.PRIVATE_KEY;
+var ClassSession = mongoose_1.default.model('ClassSession', classSessionModel_1.classSessionModel);
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 var User = mongoose_1.default.model('User', userModel_1.userModel);
 router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
@@ -78,8 +80,114 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
         }
     });
 }); });
+router.get('/user', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var req, classDoc, userDoc, err_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                req = _req;
+                if (!req.user.isTeacher) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
+                }
+                if (!('class' in req.query) || !('user' in req.query)) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_or_class_id_not_specified"))];
+                }
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4 /*yield*/, Class.findOne({
+                        _id: req.query.class,
+                        teacher: req.user._id,
+                        students: { $in: req.query.user }
+                    })];
+            case 2:
+                classDoc = _a.sent();
+                assert_1.default.ok(classDoc);
+                return [4 /*yield*/, User.findById(req.query.user)
+                        .select('_id email name')];
+            case 3:
+                userDoc = _a.sent();
+                assert_1.default.ok(userDoc);
+                res.status(200).send(userDoc);
+                return [3 /*break*/, 5];
+            case 4:
+                err_2 = _a.sent();
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_found_failed"))];
+            case 5: return [2 /*return*/];
+        }
+    });
+}); });
+router.get('/users', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var req, classDoc, userDocs, err_3;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                req = _req;
+                if (!req.user.isTeacher) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
+                }
+                if (!('class' in req.query)) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];
+                }
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4 /*yield*/, Class.findOne({
+                        _id: req.query.class,
+                        teacher: req.user._id,
+                        students: { $in: req.query.user }
+                    })];
+            case 2:
+                classDoc = _a.sent();
+                assert_1.default.ok(classDoc);
+                return [4 /*yield*/, User.find({
+                        classes: { $in: req.query.class }
+                    }).select('_id email name')];
+            case 3:
+                userDocs = _a.sent();
+                assert_1.default.ok(userDocs);
+                res.status(200).send(userDocs);
+                return [3 /*break*/, 5];
+            case 4:
+                err_3 = _a.sent();
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_found_failed"))];
+            case 5: return [2 /*return*/];
+        }
+    });
+}); });
+router.get('/sessions', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var req, ClassSessionDocs, err_4;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                req = _req;
+                if (!req.user.isTeacher) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
+                }
+                if (!('class' in req.query)) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];
+                }
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, ClassSession.find({
+                        class: req.query.class,
+                        teacher: req.user._id,
+                    })];
+            case 2:
+                ClassSessionDocs = _a.sent();
+                assert_1.default.ok(ClassSessionDocs);
+                res.status(200).send(ClassSessionDocs);
+                return [3 /*break*/, 4];
+            case 3:
+                err_4 = _a.sent();
+                return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "session_found_failed"))];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); });
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, classDoc, updatedUser, err_2;
+    var req, session, classDoc, updatedUser, err_5;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -107,7 +215,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                 assert_1.default.ok(updatedUser && updatedUser.n >= 1);
                 return [3 /*break*/, 7];
             case 5:
-                err_2 = _a.sent();
+                err_5 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
             case 6:
                 _a.sent();
@@ -122,9 +230,9 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
         }
     });
 }); });
-// TODO remove all data related to class (if exists)
+// TODO remove all data related to class (if exists) - REMOVE QUIZZES
 router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, toDelete, deletedClass, updatedUser, err_3;
+    var req, session, deletedClass, updatedUser, err_6;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -142,12 +250,11 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
                 _a.label = 2;
             case 2:
                 _a.trys.push([2, 5, , 7]);
-                toDelete = {
-                    _id: req.query.class,
-                    teacher: req.user._id,
-                    session: null
-                };
-                return [4 /*yield*/, Class.deleteOne(toDelete, { session: session })];
+                return [4 /*yield*/, Class.deleteOne({
+                        _id: req.query.class,
+                        teacher: req.user._id,
+                        session: null
+                    }, { session: session })];
             case 3:
                 deletedClass = _a.sent();
                 assert_1.default.ok(deletedClass.n && deletedClass.n >= 1);
@@ -157,7 +264,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
                 assert_1.default.ok(updatedUser.n && updatedUser.n >= 1);
                 return [3 /*break*/, 7];
             case 5:
-                err_3 = _a.sent();
+                err_6 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
             case 6:
                 _a.sent();

@@ -66,6 +66,7 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
             // 반환
         }
         catch (err) {
+            // 에러수행
         }
         return [2 /*return*/];
     });
@@ -82,6 +83,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             // 추가
         }
         catch (err) {
+            // 에러수행
         }
         return [2 /*return*/];
     });
@@ -96,6 +98,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             // 삭제, 본인클래스, 소유여부 확인
         }
         catch (err) {
+            // 에러수행
         }
         return [2 /*return*/];
     });

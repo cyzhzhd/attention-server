@@ -439,6 +439,7 @@ exports.setIoServer = function (server) {
                                 class: data.class,
                                 session: data.session,
                                 user: payload._id,
+                                name: payload.name,
                                 date: Date.now(),
                                 status: data.content,
                             })];

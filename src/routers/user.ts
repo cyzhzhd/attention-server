@@ -82,16 +82,11 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         const req = _req as ReqJwt;
 
         try {
-            const userDoc = await User.findById(req.user._id);
+            const userDoc = await User.findById(req.user._id)
+                .select("_id email name isTeacher ownClasses classes");
             assert.ok(userDoc);
 
-            const userInfo = userDoc.toJSON();
-            const pickedInfo =
-                (({ _id, email, name, isTeacher, ownClasses, classes }) =>
-                    ({
-                        _id, email, name, isTeacher, ownClasses, classes
-                    }))(userInfo);
-            res.status(200).send(pickedInfo);
+            res.status(200).send(userDoc);
         } catch (err) {
             return next(new ErrorHandler(400, 'invalid_request'));
         }
