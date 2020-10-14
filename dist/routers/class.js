@@ -134,8 +134,7 @@ router.get('/users', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
                 _a.trys.push([1, 4, , 5]);
                 return [4 /*yield*/, Class.findOne({
                         _id: req.query.class,
-                        teacher: req.user._id,
-                        students: { $in: req.query.user }
+                        teacher: req.user._id
                     })];
             case 2:
                 classDoc = _a.sent();
