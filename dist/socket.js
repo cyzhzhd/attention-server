@@ -452,7 +452,7 @@ exports.setIoServer = function (server) {
                             content: data.content
                         };
                         teacher = classSessionDoc.toJSON().teacher;
-                        ioServer.to(teacher).emit('deliverConcentration', concentrationContent);
+                        ioServer.to(teacher).emit('deliverConcenteration', concentrationContent);
                         _b.label = 4;
                     case 4:
                         redisArgs = [Date.now(), [data.session, socket.id].join(':')];

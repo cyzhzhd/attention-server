@@ -340,7 +340,7 @@ export const setIoServer = function (server: import('http').Server): void {
                     }
 
                     const teacher = classSessionDoc.toJSON().teacher;
-                    ioServer.to(teacher).emit('deliverConcentration', concentrationContent);
+                    ioServer.to(teacher).emit('deliverConcenteration', concentrationContent);
                 }
 
                 // update to redis connection manager
