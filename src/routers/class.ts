@@ -81,8 +81,7 @@ router.get('/users', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             // check class ownership, check user in class
             const classDoc = await Class.findOne({
                 _id: req.query.class,
-                teacher: req.user._id,
-                students: { $in: req.query.user }
+                teacher: req.user._id
             });
             assert.ok(classDoc);
 
