@@ -259,6 +259,7 @@ export const setIoServer = function (server: import('http').Server): void {
                     content: data.content
                 }
                 ioServer.to(data.sendTo).emit('deliverSignal', signalContent);
+                console.log("from: ", socket.id, "to: ", data.sendTo, "content: ", JSON.stringify(data.content));
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
