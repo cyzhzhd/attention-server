@@ -354,7 +354,6 @@ exports.setIoServer = function (server) {
                             content: data.content
                         };
                         ioServer.to(data.sendTo).emit('deliverSignal', signalContent);
-                        console.log("from: ", socket.id, "to: ", data.sendTo, "content: ", JSON.stringify(data.content));
                         return [3 /*break*/, 3];
                     case 2:
                         err_6 = _a.sent();
