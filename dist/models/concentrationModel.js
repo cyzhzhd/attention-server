@@ -12,9 +12,10 @@ exports.concentrationModel = new mongoose_1.default.Schema({
     user: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
     date: { type: Date, required: true },
     status: {
-        absence: { type: Number, required: true },
-        sleep: { type: Number, required: true },
-        turnHead: { type: Number, required: true },
-        focusPoint: { type: Number, required: true },
+        attend: { type: Boolean, required: true },
+        attendPer: { type: Number, required: true },
+        sleep: { type: Boolean, required: true },
+        sleepPer: { type: Number, required: true },
+        focusPoint: { type: Number, required: true }
     }
 });
