@@ -119,7 +119,7 @@ router.get('/sessions', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
                 const userDoc = await User.findOne(
                     {
                         _id: req.user._id,
-                        ownClasses: { $in: req.query.class }
+                        classes: { $in: req.query.class }
                     }
                 );
                 assert.ok(userDoc)

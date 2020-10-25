@@ -178,7 +178,7 @@ router.get('/sessions', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
                 return [3 /*break*/, 6];
             case 3: return [4 /*yield*/, User.findOne({
                     _id: req.user._id,
-                    ownClasses: { $in: req.query.class }
+                    classes: { $in: req.query.class }
                 })];
             case 4:
                 userDoc = _a.sent();
