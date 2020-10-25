@@ -7,9 +7,10 @@ export const concentrationModel = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, required: true },
     date: { type: Date, required: true },
     status: {
-        absence: { type: Number, required: true },
-        sleep: { type: Number, required: true },
-        turnHead: { type: Number, required: true },
-        focusPoint: { type: Number, required: true },
+        attend: { type: Boolean, required: true },
+        attendPer: { type: Number, required: true },
+        sleep: { type: Boolean, required: true },
+        sleepPer: { type: Number, required: true },
+        focusPoint: { type: Number, required: true }
     }
 })
