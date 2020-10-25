@@ -67,9 +67,11 @@ router.get('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
 
             const concentrationDocs = await Concentration.aggregate([
                 {
+                    $filter: {
+                        class: req.query.class,
+                    },
                     $group:
                     {
-                        class: req.query.class,
                         avgAttendPer: { $avg: "$status.attendPer" },
                         avgSleepPer: { $avg: "$status.sleepPer" },
                         avgFocusPoint: { $avg: "$status.focusPoint" }
