@@ -70,9 +70,7 @@ router.get('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
                     $group:
                     {
                         class: req.query.class,
-                        avgAttend: { $avg: "$status.attend" },
                         avgAttendPer: { $avg: "$status.attendPer" },
-                        avgSleep: { $avg: "$status.sleep" },
                         avgSleepPer: { $avg: "$status.sleepPer" },
                         avgFocusPoint: { $avg: "$status.focusPoint" }
                     }
