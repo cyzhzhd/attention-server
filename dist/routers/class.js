@@ -155,20 +155,18 @@ router.get('/users', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
     });
 }); });
 router.get('/sessions', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, ClassSessionDocs, err_4;
+    var req, ClassSessionDocs, userDoc, ClassSessionDocs, err_4;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 req = _req;
-                if (!req.user.isTeacher) {
-                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "user_not_teacher"))];
-                }
                 if (!('class' in req.query)) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "class_id_not_specified"))];
                 }
                 _a.label = 1;
             case 1:
-                _a.trys.push([1, 3, , 4]);
+                _a.trys.push([1, 7, , 8]);
+                if (!req.user.isTeacher) return [3 /*break*/, 3];
                 return [4 /*yield*/, ClassSession.find({
                         class: req.query.class,
                         teacher: req.user._id,
@@ -177,11 +175,27 @@ router.get('/sessions', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
                 ClassSessionDocs = _a.sent();
                 assert_1.default.ok(ClassSessionDocs);
                 res.status(200).send(ClassSessionDocs);
-                return [3 /*break*/, 4];
-            case 3:
+                return [3 /*break*/, 6];
+            case 3: return [4 /*yield*/, User.findOne({
+                    _id: req.user._id,
+                    ownClasses: { $in: req.query.class }
+                })];
+            case 4:
+                userDoc = _a.sent();
+                assert_1.default.ok(userDoc);
+                return [4 /*yield*/, ClassSession.find({
+                        class: req.query.class,
+                    })];
+            case 5:
+                ClassSessionDocs = _a.sent();
+                assert_1.default.ok(ClassSessionDocs);
+                res.status(200).send(ClassSessionDocs);
+                _a.label = 6;
+            case 6: return [3 /*break*/, 8];
+            case 7:
                 err_4 = _a.sent();
                 return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "session_found_failed"))];
-            case 4: return [2 /*return*/];
+            case 8: return [2 /*return*/];
         }
     });
 }); });

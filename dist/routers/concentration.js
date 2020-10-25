@@ -112,9 +112,18 @@ router.get('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
             case 2:
                 classDoc = _a.sent();
                 assert_1.default.ok(classDoc);
-                return [4 /*yield*/, Concentration.find({
-                        class: req.query.class
-                    })];
+                return [4 /*yield*/, Concentration.aggregate([
+                        {
+                            $group: {
+                                class: req.query.class,
+                                avgAttend: { $avg: "$status.attend" },
+                                avgAttendPer: { $avg: "$status.attendPer" },
+                                avgSleep: { $avg: "$status.sleep" },
+                                avgSleepPer: { $avg: "$status.sleepPer" },
+                                avgFocusPoint: { $avg: "$status.focusPoint" }
+                            }
+                        }
+                    ])];
             case 3:
                 concentrationDocs = _a.sent();
                 assert_1.default.ok(concentrationDocs);

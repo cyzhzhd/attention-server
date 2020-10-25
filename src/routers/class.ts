@@ -100,20 +100,35 @@ router.get('/sessions', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
     async (_req, res, next) => {
         const req = _req as ReqJwt;
 
-        if (!req.user.isTeacher) {
-            return next(new ErrorHandler(400, "user_not_teacher"));
-        }
         if (!('class' in req.query)) {
             return next(new ErrorHandler(400, "class_id_not_specified"));
         }
 
         try {
-            const ClassSessionDocs = await ClassSession.find({
-                class: req.query.class,
-                teacher: req.user._id,
-            })
-            assert.ok(ClassSessionDocs);
-            res.status(200).send(ClassSessionDocs);
+            if (req.user.isTeacher) {
+                // if user teacher
+                const ClassSessionDocs = await ClassSession.find({
+                    class: req.query.class,
+                    teacher: req.user._id,
+                })
+                assert.ok(ClassSessionDocs);
+                res.status(200).send(ClassSessionDocs);
+            }
+            else {
+                // if user is student 
+                const userDoc = await User.findOne(
+                    {
+                        _id: req.user._id,
+                        ownClasses: { $in: req.query.class }
+                    }
+                );
+                assert.ok(userDoc)
+                const ClassSessionDocs = await ClassSession.find({
+                    class: req.query.class,
+                })
+                assert.ok(ClassSessionDocs);
+                res.status(200).send(ClassSessionDocs);
+            }
         } catch (err) {
             return next(new ErrorHandler(400, "session_found_failed"));
         }

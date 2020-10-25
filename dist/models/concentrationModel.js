@@ -7,9 +7,9 @@ exports.concentrationModel = void 0;
 var mongoose_1 = __importDefault(require("mongoose"));
 exports.concentrationModel = new mongoose_1.default.Schema({
     id: { type: mongoose_1.default.Schema.Types.ObjectId },
-    class: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
-    session: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
-    user: { type: mongoose_1.default.Schema.Types.ObjectId, required: true },
+    class: { type: mongoose_1.default.Schema.Types.ObjectId, required: true, index: true },
+    session: { type: mongoose_1.default.Schema.Types.ObjectId, required: true, index: true },
+    user: { type: mongoose_1.default.Schema.Types.ObjectId, required: true, index: true },
     date: { type: Date, required: true },
     status: {
         attend: { type: Boolean, required: true },

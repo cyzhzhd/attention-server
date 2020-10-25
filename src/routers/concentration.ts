@@ -65,9 +65,19 @@ router.get('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             });
             assert.ok(classDoc);
 
-            const concentrationDocs = await Concentration.find({
-                class: req.query.class
-            });
+            const concentrationDocs = await Concentration.aggregate([
+                {
+                    $group:
+                    {
+                        class: req.query.class,
+                        avgAttend: { $avg: "$status.attend" },
+                        avgAttendPer: { $avg: "$status.attendPer" },
+                        avgSleep: { $avg: "$status.sleep" },
+                        avgSleepPer: { $avg: "$status.sleepPer" },
+                        avgFocusPoint: { $avg: "$status.focusPoint" }
+                    }
+                }
+            ]);
             assert.ok(concentrationDocs);
 
             res.status(200).send(concentrationDocs);
