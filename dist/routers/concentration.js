@@ -115,8 +115,10 @@ router.get('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
                 return [4 /*yield*/, Concentration.aggregate([
                         {
                             $match: {
-                                class: req.query.class,
-                            },
+                                class: mongoose_1.default.Types.ObjectId(req.query.class)
+                            }
+                        },
+                        {
                             $group: {
                                 _id: null,
                                 avgAttend: { $avg: { $toInt: "$status.attend" } },
