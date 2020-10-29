@@ -114,7 +114,7 @@ router.get('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
                 assert_1.default.ok(classDoc);
                 return [4 /*yield*/, Concentration.aggregate([
                         {
-                            $filter: {
+                            $match: {
                                 class: req.query.class,
                             },
                             $group: {
