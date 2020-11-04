@@ -120,7 +120,7 @@ router.get('/class', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['
                         },
                         {
                             $group: {
-                                _id: null,
+                                _id: "$session",
                                 avgAttend: { $avg: { $toInt: "$status.attend" } },
                                 avgAttendPer: { $avg: "$status.attendPer" },
                                 avgSleep: { $avg: { $toInt: "$status.sleep" } },

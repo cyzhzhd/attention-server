@@ -73,7 +73,7 @@ router.get('/class', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
                 },
                 {
                     $group: {
-                        _id: null,
+                        _id: "$session",
                         avgAttend: { $avg: { $toInt: "$status.attend" } },
                         avgAttendPer: { $avg: "$status.attendPer" },
                         avgSleep: { $avg: { $toInt: "$status.sleep" } },
