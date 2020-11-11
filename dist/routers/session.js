@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -45,6 +64,8 @@ var express_jwt_1 = __importDefault(require("express-jwt"));
 var dotenv_1 = __importDefault(require("dotenv"));
 var assert_1 = __importDefault(require("assert"));
 var path_1 = __importDefault(require("path"));
+var redis_1 = __importDefault(require("redis"));
+var redisWrapper = __importStar(require("../helpers/redisWrapper"));
 var userModel_1 = require("../models/userModel");
 var classModel_1 = require("../models/classModel");
 var classSessionModel_1 = require("../models/classSessionModel");
@@ -52,6 +73,9 @@ var errorHandler_1 = require("../helpers/errorHandler");
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '../../.env') });
 var router = express_1.default.Router();
 var PRIVATE_KEY = process.env.PRIVATE_KEY;
+var REDIS_HOST = process.env.REDIS_HOST;
+var REDIS_PORT = parseInt(process.env.REDIS_PORT);
+var redisClient = redis_1.default.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 var Class = mongoose_1.default.model('Class', classModel_1.classModel);
 var User = mongoose_1.default.model('User', userModel_1.userModel);
 var ClassSession = mongoose_1.default.model('ClassSession', classSessionModel_1.classSessionModel);
@@ -98,8 +122,9 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
         }
     });
 }); });
+// TODO session info regex
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, userDoc, classDoc, updatedClass, err_2;
+    var req, session, userDoc, classDoc, updatedClass, redisParties, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -119,7 +144,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                 session.startTransaction();
                 _a.label = 2;
             case 2:
-                _a.trys.push([2, 6, , 8]);
+                _a.trys.push([2, 7, , 9]);
                 return [4 /*yield*/, User.findOne({
                         _id: req.user._id,
                         ownClasses: { $in: req.body.class }
@@ -140,16 +165,20 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
             case 5:
                 updatedClass = _a.sent();
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
-                return [3 /*break*/, 8];
+                redisParties = [session, "parties"].join(':');
+                return [4 /*yield*/, redisWrapper.sadd(redisParties, redisClient, "independent")];
             case 6:
+                _a.sent();
+                return [3 /*break*/, 9];
+            case 7:
                 err_2 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
-            case 7:
+            case 8:
                 _a.sent();
                 session.endSession();
                 return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "session_start_failed"))];
-            case 8: return [4 /*yield*/, session.commitTransaction()];
-            case 9:
+            case 9: return [4 /*yield*/, session.commitTransaction()];
+            case 10:
                 _a.sent();
                 session.endSession();
                 res.sendStatus(201);
@@ -158,7 +187,7 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
     });
 }); });
 router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, userDoc, updatedSession, updatedClass, err_3;
+    var req, session, userDoc, updatedSession, updatedClass, redisParties, redisPartyUsers, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -175,7 +204,7 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
                 session.startTransaction();
                 _a.label = 2;
             case 2:
-                _a.trys.push([2, 6, , 8]);
+                _a.trys.push([2, 8, , 10]);
                 return [4 /*yield*/, User.findOne({
                         _id: req.user._id,
                         ownClasses: { $in: req.query.class }
@@ -191,16 +220,24 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 5:
                 updatedClass = _a.sent();
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
-                return [3 /*break*/, 8];
+                redisParties = [session, "parties"].join(':');
+                return [4 /*yield*/, redisWrapper.del(redisParties, redisClient)];
             case 6:
+                _a.sent();
+                redisPartyUsers = [session, "partyUser"].join(':');
+                return [4 /*yield*/, redisWrapper.del(redisPartyUsers, redisClient)];
+            case 7:
+                _a.sent();
+                return [3 /*break*/, 10];
+            case 8:
                 err_3 = _a.sent();
                 return [4 /*yield*/, session.abortTransaction()];
-            case 7:
+            case 9:
                 _a.sent();
                 session.endSession();
                 return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, "session_termination_failed"))];
-            case 8: return [4 /*yield*/, session.commitTransaction()];
-            case 9:
+            case 10: return [4 /*yield*/, session.commitTransaction()];
+            case 11:
                 _a.sent();
                 session.endSession();
                 res.sendStatus(200);

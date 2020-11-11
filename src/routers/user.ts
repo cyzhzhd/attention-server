@@ -52,8 +52,12 @@ router.post('/account', async (req, res, next) => {
     try {
         // Validate email and password
         const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-        if (!emailRegex.test(req.body.email)) {
+        if (!emailRegex.test(req.body.email) || req.body.email.length > 100) {
             return next(new ErrorHandler(400, 'invalid_email'));
+        }
+        const nameRegex = /^[\w ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+$/;
+        if (!nameRegex.test(req.body.name) || req.body.name.length > 30) {
+            return next(new ErrorHandler(400, 'invalid_name'));
         }
         if (req.body.password.length < 8) {
             return next(new ErrorHandler(400, 'password_too_short'));

@@ -199,6 +199,7 @@ router.get('/sessions', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms:
         }
     });
 }); });
+// TODO class name regex
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
     var req, session, classDoc, updatedUser, err_5;
     return __generator(this, function (_a) {

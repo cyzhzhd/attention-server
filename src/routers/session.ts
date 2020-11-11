@@ -4,6 +4,8 @@ import expressjwt from "express-jwt";
 import dotenv from "dotenv";
 import assert from "assert";
 import path from "path";
+import redis from "redis";
+import * as redisWrapper from "../helpers/redisWrapper";
 import { ReqJwt } from "../types/reqjwt";
 import { userModel } from "../models/userModel";
 import { classModel } from "../models/classModel"
@@ -13,6 +15,10 @@ import { ErrorHandler } from "../helpers/errorHandler";
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 const router = express.Router();
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
+const REDIS_HOST = process.env.REDIS_HOST as string;
+const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
+
+const redisClient = redis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 
 const Class = mongoose.model('Class', classModel);
 const User = mongoose.model('User', userModel);
@@ -57,6 +63,7 @@ router.get('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
         }
     });
 
+// TODO session info regex
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;
@@ -99,6 +106,9 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
                 { session: session }
             );
             assert.ok(updatedClass && updatedClass.n >= 1);
+
+            const redisParties = [session, "parties"].join(':');
+            await redisWrapper.sadd(redisParties, redisClient, "independent");
         } catch (err) {
             await session.abortTransaction();
             session.endSession();
@@ -149,6 +159,11 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
                 { session: session }
             );
             assert.ok(updatedClass && updatedClass.n >= 1);
+
+            const redisParties = [session, "parties"].join(':');
+            await redisWrapper.del(redisParties, redisClient);
+            const redisPartyUsers = [session, "partyUser"].join(':');
+            await redisWrapper.del(redisPartyUsers, redisClient);
         } catch (err) {
             await session.abortTransaction();
             session.endSession();

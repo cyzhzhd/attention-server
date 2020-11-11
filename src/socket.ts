@@ -15,6 +15,7 @@ import { chatModel } from "./models/chatModel";
 dotenv.config({ path: path.join(__dirname, '../.env') });
 const REDIS_HOST = process.env.REDIS_HOST as string;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT as string);
+const REDIS_CONNECTION_COLLECTION = process.env.REDIS_CONNECTION_COLLECTION as string;
 
 const redisClient = redis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 
@@ -31,6 +32,29 @@ function checkData(data:
         }
     }
     return true;
+}
+
+// TODO promise.all
+async function emitPartyStateChange(sessionId: string, ioServer: io.Server) {
+    const redisPartyUsers = [sessionId, "partyUser"].join(':');
+    const partyInfo = await redisWrapper.hvals(redisPartyUsers, redisClient);
+
+    const redisParties = [sessionId, "parties"].join(':');
+    const parties = await redisWrapper.smembers(redisParties, redisClient);
+
+    const partyObj: { [index: string]: { id: string, user: string }[] } = {};
+
+    for (const party of parties) {
+        partyObj[party] = [];
+    }
+
+    for (const info of partyInfo) {
+        const splitted = info.split(':') as string[];
+        const infoObj = { "id": splitted[0], "user": splitted[1] };
+        partyObj[splitted[2]].push(infoObj);
+    }
+
+    ioServer.to(sessionId).emit('deliverPartyList', partyObj);
 }
 
 function emitUserStateChange(classSessionDoc: mongoose.Document,
@@ -57,10 +81,11 @@ export const setIoServer = function (server: import('http').Server): void {
 
             // get old connections
             const disconnections = await redisWrapper.zrangebyscore(
-                redisClient, 0, curTime - 15000);
+                REDIS_CONNECTION_COLLECTION, redisClient, 0, curTime - 15000);
 
-            // delete from redis
-            await redisWrapper.zremrangebyscore(redisClient, 0, curTime - 15000);
+            // remove from redis
+            await redisWrapper.zremrangebyscore(REDIS_CONNECTION_COLLECTION,
+                redisClient, 0, curTime - 15000);
 
             // iterate all disconnected user
             for (const disconnection of disconnections) {
@@ -82,12 +107,15 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
 
                 if (updatedClassSession) {
-                    emitUserStateChange(updatedClassSession, session, ioServer);
-
                     // leave socket room
                     [session, socket].forEach((room) => {
                         adapter.remoteLeave(socket, room, () => { return; })
                     });
+
+                    const redisPartyUsers = [session, "partyUser"].join(':');
+                    await redisWrapper.hdel(redisPartyUsers, redisClient, socket);
+                    await emitPartyStateChange(session, ioServer);
+                    emitUserStateChange(updatedClassSession, session, ioServer);
 
                     // users received deliverDisconnection has to send leaveSession event
                     ioServer.to(socket).emit('deliverDisconnection');
@@ -132,14 +160,20 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
                 assert(updatedClassSession);
 
-                // add to redis connection manager
-                const redisArgs = [Date.now(),
-                [data.session, socket.id].join(':')];
-                await redisWrapper.zadd(redisClient, redisArgs);
-
                 socket.join(payload._id);
                 socket.join(data.session);
 
+                // add to redis connection manager
+                const redisArgs = [Date.now(),
+                [data.session, socket.id].join(':')];
+                await redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs);
+
+                // join independent party
+                const redisPartyUsers = [data.session, "partyUser"].join(':');
+                const redisUserValue = [payload._id, payload.name, "independent"].join(':');
+                await redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue]);
+
+                await emitPartyStateChange(data.session, ioServer);
                 emitUserStateChange(updatedClassSession, data.session, ioServer);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
@@ -167,14 +201,100 @@ export const setIoServer = function (server: import('http').Server): void {
                 );
                 assert(updatedClassSession);
 
-                await redisWrapper.zrem(redisClient,
+                await redisWrapper.zrem(REDIS_CONNECTION_COLLECTION, redisClient,
                     [data.session, socket.id].join(':'));
+
+                const redisPartyUsers = [data.session, "partyUser"].join(':');
+                await redisWrapper.hdel(redisPartyUsers, redisClient, socket.id);
 
                 // leave socket room
                 socket.leave(payload._id);
                 socket.leave(data.session);
 
+                await emitPartyStateChange(data.session, ioServer);
                 emitUserStateChange(updatedClassSession, data.session, ioServer);
+            } catch (err) {
+                ioServer.to(socket.id).emit('deliverError');
+                return;
+            }
+        })
+
+        socket.on('createParty', async (data: socketData.ContentData) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session'])) {
+                    throw new Error();
+                };
+                const nameRegex = /^[\w ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+$/;
+                if (!nameRegex.test(data.content) || data.content.length > 30) {
+                    throw new Error();
+                }
+                const { payload, isHost } = await authSessionConnection(data);
+                assert(isHost);
+
+                const redisParties = [data.session, "parties"].join(':');
+                await redisWrapper.sadd(redisParties, redisClient, data.content);
+
+                await emitPartyStateChange(data.session, ioServer);
+
+            } catch (err) {
+                ioServer.to(socket.id).emit('deliverError');
+                return;
+            }
+        })
+
+        socket.on('removeParty', async (data: socketData.ContentData) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session'])) {
+                    throw new Error();
+                };
+                const { payload, isHost } = await authSessionConnection(data);
+                assert(isHost);
+                // independent cannot be removed
+                assert(data.content !== "independent");
+
+                const redisPartyUsers = [data.session, "partyUser"].join(':');
+                const partyMembers = await redisWrapper.hgetall(redisPartyUsers, redisClient);
+
+                const filtered = [] as string[];
+                if (partyMembers !== undefined && partyMembers !== null) {
+                    Object.keys(partyMembers).forEach(key => {
+                        const splitted = partyMembers[key].split(':');
+                        if (splitted[2] === data.content) {
+                            splitted[2] = "independent";
+                            filtered.push(key);
+                            filtered.push(splitted.join(":"));
+                        }
+                    })
+                    await redisWrapper.hmset(redisPartyUsers, redisClient, filtered);
+                }
+
+                const redisParties = [data.session, "parties"].join(':');
+                await redisWrapper.srem(redisParties, redisClient, data.content);
+
+                await emitPartyStateChange(data.session, ioServer);
+            } catch (err) {
+                ioServer.to(socket.id).emit('deliverError');
+                return;
+            }
+        })
+
+        socket.on('joinParty', async (data: socketData.ContentData) => {
+            try {
+                if (!checkData(data, ['token', 'class', 'session'])) {
+                    throw new Error();
+                };
+                const { payload } = await authSessionConnection(data);
+
+                const redisParties = [data.session, "parties"].join(':');
+                const redisPartyList = await redisWrapper.smembers(redisParties, redisClient);
+
+                if (redisPartyList.includes(data.content)) {
+                    const redisPartyUsers = [data.session, "partyUser"].join(':');
+                    const redisUserValue = [payload._id, payload.name, data.content].join(':');
+                    await redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue]);
+                    await emitPartyStateChange(data.session, ioServer);
+                }
+
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -345,7 +465,7 @@ export const setIoServer = function (server: import('http').Server): void {
 
                 // update to redis connection manager
                 const redisArgs = [Date.now(), [data.session, socket.id].join(':')];
-                await redisWrapper.zadd(redisClient, redisArgs);
+                await redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -372,7 +492,7 @@ export const setIoServer = function (server: import('http').Server): void {
 
                 // update to redis connection manager
                 const redisArgs = [Date.now(), [data.session, socket.id].join(':')];
-                await redisWrapper.zadd(redisClient, redisArgs);
+                await redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs);
             } catch (err) {
                 ioServer.to(socket.id).emit('deliverError');
                 return;
@@ -417,9 +537,13 @@ export const setIoServer = function (server: import('http').Server): void {
                 if (updatedClassSession) {
                     const classSessionJson = updatedClassSession.toJSON();
 
-                    await redisWrapper.zrem(redisClient,
+                    await redisWrapper.zrem(REDIS_CONNECTION_COLLECTION, redisClient,
                         [classSessionJson._id, socket.id].join(':'));
 
+                    const redisPartyUsers = [classSessionJson._id, "partyUser"].join(':');
+                    await redisWrapper.hdel(redisPartyUsers, redisClient, socket.id);
+
+                    await emitPartyStateChange(classSessionJson._id, ioServer);
                     emitUserStateChange(updatedClassSession, classSessionJson._id, ioServer);
                     // leaving socket room doesn't needed
                 }

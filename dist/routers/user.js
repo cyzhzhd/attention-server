@@ -96,14 +96,18 @@ router.post('/login', function (req, res, next) { return __awaiter(void 0, void 
     });
 }); });
 router.post('/account', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var emailRegex, userDoc, err_2;
+    var emailRegex, nameRegex, userDoc, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 2, , 3]);
                 emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-                if (!emailRegex.test(req.body.email)) {
+                if (!emailRegex.test(req.body.email) || req.body.email.length > 100) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_email'))];
+                }
+                nameRegex = /^[\w ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+$/;
+                if (!nameRegex.test(req.body.name) || req.body.name.length > 30) {
+                    return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'invalid_name'))];
                 }
                 if (req.body.password.length < 8) {
                     return [2 /*return*/, next(new errorHandler_1.ErrorHandler(400, 'password_too_short'))];

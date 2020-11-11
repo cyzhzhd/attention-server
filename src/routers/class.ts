@@ -134,6 +134,7 @@ router.get('/sessions', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] 
         }
     });
 
+// TODO class name regex
 router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
     async (_req, res, next) => {
         const req = _req as ReqJwt;

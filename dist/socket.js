@@ -74,6 +74,7 @@ var chatModel_1 = require("./models/chatModel");
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '../.env') });
 var REDIS_HOST = process.env.REDIS_HOST;
 var REDIS_PORT = parseInt(process.env.REDIS_PORT);
+var REDIS_CONNECTION_COLLECTION = process.env.REDIS_CONNECTION_COLLECTION;
 var redisClient = redis_1.default.createClient({ host: REDIS_HOST, port: REDIS_PORT });
 var Concentration = mongoose_1.default.model('Concentration', concentrationModel_1.concentrationModel);
 var ClassSession = mongoose_1.default.model('ClassSession', classSessionModel_1.classSessionModel);
@@ -86,6 +87,38 @@ function checkData(data, checkList) {
         }
     }
     return true;
+}
+// TODO promise.all
+function emitPartyStateChange(sessionId, ioServer) {
+    return __awaiter(this, void 0, void 0, function () {
+        var redisPartyUsers, partyInfo, redisParties, parties, partyObj, _i, parties_1, party, _a, partyInfo_1, info, splitted, infoObj;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    redisPartyUsers = [sessionId, "partyUser"].join(':');
+                    return [4 /*yield*/, redisWrapper.hvals(redisPartyUsers, redisClient)];
+                case 1:
+                    partyInfo = _b.sent();
+                    redisParties = [sessionId, "parties"].join(':');
+                    return [4 /*yield*/, redisWrapper.smembers(redisParties, redisClient)];
+                case 2:
+                    parties = _b.sent();
+                    partyObj = {};
+                    for (_i = 0, parties_1 = parties; _i < parties_1.length; _i++) {
+                        party = parties_1[_i];
+                        partyObj[party] = [];
+                    }
+                    for (_a = 0, partyInfo_1 = partyInfo; _a < partyInfo_1.length; _a++) {
+                        info = partyInfo_1[_a];
+                        splitted = info.split(':');
+                        infoObj = { "id": splitted[0], "user": splitted[1] };
+                        partyObj[splitted[2]].push(infoObj);
+                    }
+                    ioServer.to(sessionId).emit('deliverPartyList', partyObj);
+                    return [2 /*return*/];
+            }
+        });
+    });
 }
 function emitUserStateChange(classSessionDoc, sessionId, ioServer) {
     var userList = classSessionDoc.toJSON().userList;
@@ -109,16 +142,16 @@ exports.setIoServer = function (server) {
                 case 0:
                     _a.trys.push([0, 7, , 8]);
                     curTime = Date.now();
-                    return [4 /*yield*/, redisWrapper.zrangebyscore(redisClient, 0, curTime - 15000)];
+                    return [4 /*yield*/, redisWrapper.zrangebyscore(REDIS_CONNECTION_COLLECTION, redisClient, 0, curTime - 15000)];
                 case 1:
                     disconnections = _a.sent();
-                    // delete from redis
-                    return [4 /*yield*/, redisWrapper.zremrangebyscore(redisClient, 0, curTime - 15000)];
+                    // remove from redis
+                    return [4 /*yield*/, redisWrapper.zremrangebyscore(REDIS_CONNECTION_COLLECTION, redisClient, 0, curTime - 15000)];
                 case 2:
-                    // delete from redis
+                    // remove from redis
                     _a.sent();
                     _loop_1 = function (disconnection) {
-                        var _a, session, socket, updatedClassSession;
+                        var _a, session, socket, updatedClassSession, redisPartyUsers;
                         return __generator(this, function (_b) {
                             switch (_b.label) {
                                 case 0:
@@ -133,16 +166,23 @@ exports.setIoServer = function (server) {
                                         }, { new: true })];
                                 case 1:
                                     updatedClassSession = _b.sent();
-                                    if (updatedClassSession) {
-                                        emitUserStateChange(updatedClassSession, session, ioServer);
-                                        // leave socket room
-                                        [session, socket].forEach(function (room) {
-                                            adapter.remoteLeave(socket, room, function () { return; });
-                                        });
-                                        // users received deliverDisconnection has to send leaveSession event
-                                        ioServer.to(socket).emit('deliverDisconnection');
-                                    }
-                                    return [2 /*return*/];
+                                    if (!updatedClassSession) return [3 /*break*/, 4];
+                                    // leave socket room
+                                    [session, socket].forEach(function (room) {
+                                        adapter.remoteLeave(socket, room, function () { return; });
+                                    });
+                                    redisPartyUsers = [session, "partyUser"].join(':');
+                                    return [4 /*yield*/, redisWrapper.hdel(redisPartyUsers, redisClient, socket)];
+                                case 2:
+                                    _b.sent();
+                                    return [4 /*yield*/, emitPartyStateChange(session, ioServer)];
+                                case 3:
+                                    _b.sent();
+                                    emitUserStateChange(updatedClassSession, session, ioServer);
+                                    // users received deliverDisconnection has to send leaveSession event
+                                    ioServer.to(socket).emit('deliverDisconnection');
+                                    _b.label = 4;
+                                case 4: return [2 /*return*/];
                             }
                         });
                     };
@@ -170,11 +210,11 @@ exports.setIoServer = function (server) {
     ioServer.on("connection", function (socket) {
         // TODO prevent joining multiple session
         socket.on('joinSession', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, payload, isHost, updatedClassSession, redisArgs, err_2;
+            var _a, payload, isHost, updatedClassSession, redisArgs, redisPartyUsers, redisUserValue, err_2;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        _b.trys.push([0, 4, , 5]);
+                        _b.trys.push([0, 6, , 7]);
                         if (!checkData(data, ['token', 'class', 'session'])) {
                             throw new Error();
                         }
@@ -202,29 +242,37 @@ exports.setIoServer = function (server) {
                     case 2:
                         updatedClassSession = _b.sent();
                         assert_1.default(updatedClassSession);
-                        redisArgs = [Date.now(),
-                            [data.session, socket.id].join(':')];
-                        return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
-                    case 3:
-                        _b.sent();
                         socket.join(payload._id);
                         socket.join(data.session);
-                        emitUserStateChange(updatedClassSession, data.session, ioServer);
-                        return [3 /*break*/, 5];
+                        redisArgs = [Date.now(),
+                            [data.session, socket.id].join(':')];
+                        return [4 /*yield*/, redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs)];
+                    case 3:
+                        _b.sent();
+                        redisPartyUsers = [data.session, "partyUser"].join(':');
+                        redisUserValue = [payload._id, payload.name, "independent"].join(':');
+                        return [4 /*yield*/, redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue])];
                     case 4:
+                        _b.sent();
+                        return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
+                    case 5:
+                        _b.sent();
+                        emitUserStateChange(updatedClassSession, data.session, ioServer);
+                        return [3 /*break*/, 7];
+                    case 6:
                         err_2 = _b.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
-                    case 5: return [2 /*return*/];
+                    case 7: return [2 /*return*/];
                 }
             });
         }); });
         socket.on('leaveSession', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, updatedClassSession, err_3;
+            var payload, updatedClassSession, redisPartyUsers, err_3;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _a.trys.push([0, 4, , 5]);
+                        _a.trys.push([0, 6, , 7]);
                         if (!checkData(data, ['token', 'class', 'session'])) {
                             throw new Error();
                         }
@@ -243,24 +291,152 @@ exports.setIoServer = function (server) {
                     case 2:
                         updatedClassSession = _a.sent();
                         assert_1.default(updatedClassSession);
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [data.session, socket.id].join(':'))];
+                        return [4 /*yield*/, redisWrapper.zrem(REDIS_CONNECTION_COLLECTION, redisClient, [data.session, socket.id].join(':'))];
                     case 3:
+                        _a.sent();
+                        redisPartyUsers = [data.session, "partyUser"].join(':');
+                        return [4 /*yield*/, redisWrapper.hdel(redisPartyUsers, redisClient, socket.id)];
+                    case 4:
                         _a.sent();
                         // leave socket room
                         socket.leave(payload._id);
                         socket.leave(data.session);
+                        return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
+                    case 5:
+                        _a.sent();
                         emitUserStateChange(updatedClassSession, data.session, ioServer);
+                        return [3 /*break*/, 7];
+                    case 6:
+                        err_3 = _a.sent();
+                        ioServer.to(socket.id).emit('deliverError');
+                        return [2 /*return*/];
+                    case 7: return [2 /*return*/];
+                }
+            });
+        }); });
+        socket.on('createParty', function (data) { return __awaiter(_this, void 0, void 0, function () {
+            var nameRegex, _a, payload, isHost, redisParties, err_4;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 4, , 5]);
+                        if (!checkData(data, ['token', 'class', 'session'])) {
+                            throw new Error();
+                        }
+                        ;
+                        nameRegex = /^[\w ㄱ-ㅎ|ㅏ-ㅣ|가-힣]+$/;
+                        if (!nameRegex.test(data.content) || data.content.length > 30) {
+                            throw new Error();
+                        }
+                        return [4 /*yield*/, authSocket_1.authSessionConnection(data)];
+                    case 1:
+                        _a = _b.sent(), payload = _a.payload, isHost = _a.isHost;
+                        assert_1.default(isHost);
+                        redisParties = [data.session, "parties"].join(':');
+                        return [4 /*yield*/, redisWrapper.sadd(redisParties, redisClient, data.content)];
+                    case 2:
+                        _b.sent();
+                        return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
+                    case 3:
+                        _b.sent();
                         return [3 /*break*/, 5];
                     case 4:
-                        err_3 = _a.sent();
+                        err_4 = _b.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 5: return [2 /*return*/];
                 }
             });
         }); });
+        socket.on('removeParty', function (data) { return __awaiter(_this, void 0, void 0, function () {
+            var _a, payload, isHost, redisPartyUsers, partyMembers_1, filtered_1, redisParties, err_5;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 7, , 8]);
+                        if (!checkData(data, ['token', 'class', 'session'])) {
+                            throw new Error();
+                        }
+                        ;
+                        return [4 /*yield*/, authSocket_1.authSessionConnection(data)];
+                    case 1:
+                        _a = _b.sent(), payload = _a.payload, isHost = _a.isHost;
+                        assert_1.default(isHost);
+                        // independent cannot be removed
+                        assert_1.default(data.content !== "independent");
+                        redisPartyUsers = [data.session, "partyUser"].join(':');
+                        return [4 /*yield*/, redisWrapper.hgetall(redisPartyUsers, redisClient)];
+                    case 2:
+                        partyMembers_1 = _b.sent();
+                        filtered_1 = [];
+                        if (!(partyMembers_1 !== undefined && partyMembers_1 !== null)) return [3 /*break*/, 4];
+                        Object.keys(partyMembers_1).forEach(function (key) {
+                            var splitted = partyMembers_1[key].split(':');
+                            if (splitted[2] === data.content) {
+                                splitted[2] = "independent";
+                                filtered_1.push(key);
+                                filtered_1.push(splitted.join(":"));
+                            }
+                        });
+                        return [4 /*yield*/, redisWrapper.hmset(redisPartyUsers, redisClient, filtered_1)];
+                    case 3:
+                        _b.sent();
+                        _b.label = 4;
+                    case 4:
+                        redisParties = [data.session, "parties"].join(':');
+                        return [4 /*yield*/, redisWrapper.srem(redisParties, redisClient, data.content)];
+                    case 5:
+                        _b.sent();
+                        return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
+                    case 6:
+                        _b.sent();
+                        return [3 /*break*/, 8];
+                    case 7:
+                        err_5 = _b.sent();
+                        ioServer.to(socket.id).emit('deliverError');
+                        return [2 /*return*/];
+                    case 8: return [2 /*return*/];
+                }
+            });
+        }); });
+        socket.on('joinParty', function (data) { return __awaiter(_this, void 0, void 0, function () {
+            var payload, redisParties, redisPartyList, redisPartyUsers, redisUserValue, err_6;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 6, , 7]);
+                        if (!checkData(data, ['token', 'class', 'session'])) {
+                            throw new Error();
+                        }
+                        ;
+                        return [4 /*yield*/, authSocket_1.authSessionConnection(data)];
+                    case 1:
+                        payload = (_a.sent()).payload;
+                        redisParties = [data.session, "parties"].join(':');
+                        return [4 /*yield*/, redisWrapper.smembers(redisParties, redisClient)];
+                    case 2:
+                        redisPartyList = _a.sent();
+                        if (!redisPartyList.includes(data.content)) return [3 /*break*/, 5];
+                        redisPartyUsers = [data.session, "partyUser"].join(':');
+                        redisUserValue = [payload._id, payload.name, data.content].join(':');
+                        return [4 /*yield*/, redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue])];
+                    case 3:
+                        _a.sent();
+                        return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
+                    case 4:
+                        _a.sent();
+                        _a.label = 5;
+                    case 5: return [3 /*break*/, 7];
+                    case 6:
+                        err_6 = _a.sent();
+                        ioServer.to(socket.id).emit('deliverError');
+                        return [2 /*return*/];
+                    case 7: return [2 /*return*/];
+                }
+            });
+        }); });
         socket.on('shareScreen', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, updatedClassSession, err_4;
+            var payload, updatedClassSession, err_7;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -292,7 +468,7 @@ exports.setIoServer = function (server) {
                         emitUserStateChange(updatedClassSession, data.session, ioServer);
                         return [3 /*break*/, 4];
                     case 3:
-                        err_4 = _a.sent();
+                        err_7 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 4: return [2 /*return*/];
@@ -300,7 +476,7 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('stopShareScreen', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, updatedClassSession, err_5;
+            var payload, updatedClassSession, err_8;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -328,7 +504,7 @@ exports.setIoServer = function (server) {
                         emitUserStateChange(updatedClassSession, data.session, ioServer);
                         return [3 /*break*/, 4];
                     case 3:
-                        err_5 = _a.sent();
+                        err_8 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 4: return [2 /*return*/];
@@ -336,7 +512,7 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('sendSignal', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, signalContent, err_6;
+            var payload, signalContent, err_9;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -356,7 +532,7 @@ exports.setIoServer = function (server) {
                         ioServer.to(data.sendTo).emit('deliverSignal', signalContent);
                         return [3 /*break*/, 3];
                     case 2:
-                        err_6 = _a.sent();
+                        err_9 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 3: return [2 /*return*/];
@@ -364,7 +540,7 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('sendChat', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, classSessionDoc, chatDoc, chatContent, err_7;
+            var payload, classSessionDoc, chatDoc, chatContent, err_10;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -403,7 +579,7 @@ exports.setIoServer = function (server) {
                         ioServer.to(data.session).emit('deliverChat', chatContent);
                         return [3 /*break*/, 5];
                     case 4:
-                        err_7 = _a.sent();
+                        err_10 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 5: return [2 /*return*/];
@@ -412,7 +588,7 @@ exports.setIoServer = function (server) {
         }); });
         // this socket event also does ping
         socket.on('sendConcentration', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, payload, isHost, classSessionDoc, concentrationDoc, concentrationContent, teacher, redisArgs, err_8;
+            var _a, payload, isHost, classSessionDoc, concentrationDoc, concentrationContent, teacher, redisArgs, err_11;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -456,12 +632,12 @@ exports.setIoServer = function (server) {
                         _b.label = 4;
                     case 4:
                         redisArgs = [Date.now(), [data.session, socket.id].join(':')];
-                        return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
+                        return [4 /*yield*/, redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs)];
                     case 5:
                         _b.sent();
                         return [3 /*break*/, 7];
                     case 6:
-                        err_8 = _b.sent();
+                        err_11 = _b.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 7: return [2 /*return*/];
@@ -469,7 +645,7 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('pingSession', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, classSessionDoc, redisArgs, err_9;
+            var payload, classSessionDoc, redisArgs, err_12;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -492,12 +668,12 @@ exports.setIoServer = function (server) {
                         classSessionDoc = _a.sent();
                         assert_1.default.ok(classSessionDoc);
                         redisArgs = [Date.now(), [data.session, socket.id].join(':')];
-                        return [4 /*yield*/, redisWrapper.zadd(redisClient, redisArgs)];
+                        return [4 /*yield*/, redisWrapper.zadd(REDIS_CONNECTION_COLLECTION, redisClient, redisArgs)];
                     case 3:
                         _a.sent();
                         return [3 /*break*/, 5];
                     case 4:
-                        err_9 = _a.sent();
+                        err_12 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 5: return [2 /*return*/];
@@ -506,7 +682,7 @@ exports.setIoServer = function (server) {
         }); });
         // this event is for teacher to politely ask user(s) to disconnect
         socket.on('requestDisconnection', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var isHost, err_10;
+            var isHost, err_13;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -523,7 +699,7 @@ exports.setIoServer = function (server) {
                         ioServer.to(data.sendTo).emit('deliverDisconnection');
                         return [3 /*break*/, 3];
                     case 2:
-                        err_10 = _a.sent();
+                        err_13 = _a.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 3: return [2 /*return*/];
@@ -531,11 +707,11 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('disconnect', function () { return __awaiter(_this, void 0, void 0, function () {
-            var updatedClassSession, classSessionJson, err_11;
+            var updatedClassSession, classSessionJson, redisPartyUsers, err_14;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _a.trys.push([0, 4, , 5]);
+                        _a.trys.push([0, 6, , 7]);
                         return [4 /*yield*/, ClassSession.findOneAndUpdate({
                                 status: "online",
                                 "userList.socket": {
@@ -548,19 +724,26 @@ exports.setIoServer = function (server) {
                             }, { new: true })];
                     case 1:
                         updatedClassSession = _a.sent();
-                        if (!updatedClassSession) return [3 /*break*/, 3];
+                        if (!updatedClassSession) return [3 /*break*/, 5];
                         classSessionJson = updatedClassSession.toJSON();
-                        return [4 /*yield*/, redisWrapper.zrem(redisClient, [classSessionJson._id, socket.id].join(':'))];
+                        return [4 /*yield*/, redisWrapper.zrem(REDIS_CONNECTION_COLLECTION, redisClient, [classSessionJson._id, socket.id].join(':'))];
                     case 2:
                         _a.sent();
-                        emitUserStateChange(updatedClassSession, classSessionJson._id, ioServer);
-                        _a.label = 3;
-                    case 3: return [3 /*break*/, 5];
+                        redisPartyUsers = [classSessionJson._id, "partyUser"].join(':');
+                        return [4 /*yield*/, redisWrapper.hdel(redisPartyUsers, redisClient, socket.id)];
+                    case 3:
+                        _a.sent();
+                        return [4 /*yield*/, emitPartyStateChange(classSessionJson._id, ioServer)];
                     case 4:
-                        err_11 = _a.sent();
-                        console.log(err_11); // TODO log error
+                        _a.sent();
+                        emitUserStateChange(updatedClassSession, classSessionJson._id, ioServer);
+                        _a.label = 5;
+                    case 5: return [3 /*break*/, 7];
+                    case 6:
+                        err_14 = _a.sent();
+                        console.log(err_14); // TODO log error
                         return [2 /*return*/];
-                    case 5: return [2 /*return*/];
+                    case 7: return [2 /*return*/];
                 }
             });
         }); });
