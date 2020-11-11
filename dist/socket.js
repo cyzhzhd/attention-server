@@ -111,8 +111,8 @@ function emitPartyStateChange(sessionId, ioServer) {
                     for (_a = 0, partyInfo_1 = partyInfo; _a < partyInfo_1.length; _a++) {
                         info = partyInfo_1[_a];
                         splitted = info.split(':');
-                        infoObj = { "id": splitted[0], "user": splitted[1] };
-                        partyObj[splitted[2]].push(infoObj);
+                        infoObj = { "isTeacher": (splitted[0] == "false" ? 0 : 1), "id": splitted[1], "user": splitted[2] };
+                        partyObj[splitted[3]].push(infoObj);
                     }
                     ioServer.to(sessionId).emit('deliverPartyList', partyObj);
                     return [2 /*return*/];
@@ -250,7 +250,7 @@ exports.setIoServer = function (server) {
                     case 3:
                         _b.sent();
                         redisPartyUsers = [data.session, "partyUser"].join(':');
-                        redisUserValue = [payload._id, payload.name, "independent"].join(':');
+                        redisUserValue = [isHost, payload._id, payload.name, "independent"].join(':');
                         return [4 /*yield*/, redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue])];
                     case 4:
                         _b.sent();
@@ -372,8 +372,8 @@ exports.setIoServer = function (server) {
                         if (!(partyMembers_1 !== undefined && partyMembers_1 !== null)) return [3 /*break*/, 4];
                         Object.keys(partyMembers_1).forEach(function (key) {
                             var splitted = partyMembers_1[key].split(':');
-                            if (splitted[2] === data.content) {
-                                splitted[2] = "independent";
+                            if (splitted[3] === data.content) {
+                                splitted[3] = "independent";
                                 filtered_1.push(key);
                                 filtered_1.push(splitted.join(":"));
                             }
@@ -400,35 +400,35 @@ exports.setIoServer = function (server) {
             });
         }); });
         socket.on('joinParty', function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var payload, redisParties, redisPartyList, redisPartyUsers, redisUserValue, err_6;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var _a, payload, isHost, redisParties, redisPartyList, redisPartyUsers, redisUserValue, err_6;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        _a.trys.push([0, 6, , 7]);
+                        _b.trys.push([0, 6, , 7]);
                         if (!checkData(data, ['token', 'class', 'session'])) {
                             throw new Error();
                         }
                         ;
                         return [4 /*yield*/, authSocket_1.authSessionConnection(data)];
                     case 1:
-                        payload = (_a.sent()).payload;
+                        _a = _b.sent(), payload = _a.payload, isHost = _a.isHost;
                         redisParties = [data.session, "parties"].join(':');
                         return [4 /*yield*/, redisWrapper.smembers(redisParties, redisClient)];
                     case 2:
-                        redisPartyList = _a.sent();
+                        redisPartyList = _b.sent();
                         if (!redisPartyList.includes(data.content)) return [3 /*break*/, 5];
                         redisPartyUsers = [data.session, "partyUser"].join(':');
-                        redisUserValue = [payload._id, payload.name, data.content].join(':');
+                        redisUserValue = [isHost, payload._id, payload.name, data.content].join(':');
                         return [4 /*yield*/, redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue])];
                     case 3:
-                        _a.sent();
+                        _b.sent();
                         return [4 /*yield*/, emitPartyStateChange(data.session, ioServer)];
                     case 4:
-                        _a.sent();
-                        _a.label = 5;
+                        _b.sent();
+                        _b.label = 5;
                     case 5: return [3 /*break*/, 7];
                     case 6:
-                        err_6 = _a.sent();
+                        err_6 = _b.sent();
                         ioServer.to(socket.id).emit('deliverError');
                         return [2 /*return*/];
                     case 7: return [2 /*return*/];

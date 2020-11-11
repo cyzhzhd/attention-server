@@ -50,8 +50,8 @@ async function emitPartyStateChange(sessionId: string, ioServer: io.Server) {
 
     for (const info of partyInfo) {
         const splitted = info.split(':') as string[];
-        const infoObj = { "id": splitted[0], "user": splitted[1] };
-        partyObj[splitted[2]].push(infoObj);
+        const infoObj = { "isTeacher": (splitted[0] == "false" ? 0 : 1), "id": splitted[1], "user": splitted[2] };
+        partyObj[splitted[3]].push(infoObj);
     }
 
     ioServer.to(sessionId).emit('deliverPartyList', partyObj);
@@ -170,7 +170,7 @@ export const setIoServer = function (server: import('http').Server): void {
 
                 // join independent party
                 const redisPartyUsers = [data.session, "partyUser"].join(':');
-                const redisUserValue = [payload._id, payload.name, "independent"].join(':');
+                const redisUserValue = [isHost, payload._id, payload.name, "independent"].join(':');
                 await redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue]);
 
                 await emitPartyStateChange(data.session, ioServer);
@@ -259,8 +259,8 @@ export const setIoServer = function (server: import('http').Server): void {
                 if (partyMembers !== undefined && partyMembers !== null) {
                     Object.keys(partyMembers).forEach(key => {
                         const splitted = partyMembers[key].split(':');
-                        if (splitted[2] === data.content) {
-                            splitted[2] = "independent";
+                        if (splitted[3] === data.content) {
+                            splitted[3] = "independent";
                             filtered.push(key);
                             filtered.push(splitted.join(":"));
                         }
@@ -283,14 +283,14 @@ export const setIoServer = function (server: import('http').Server): void {
                 if (!checkData(data, ['token', 'class', 'session'])) {
                     throw new Error();
                 };
-                const { payload } = await authSessionConnection(data);
+                const { payload, isHost } = await authSessionConnection(data);
 
                 const redisParties = [data.session, "parties"].join(':');
                 const redisPartyList = await redisWrapper.smembers(redisParties, redisClient);
 
                 if (redisPartyList.includes(data.content)) {
                     const redisPartyUsers = [data.session, "partyUser"].join(':');
-                    const redisUserValue = [payload._id, payload.name, data.content].join(':');
+                    const redisUserValue = [isHost, payload._id, payload.name, data.content].join(':');
                     await redisWrapper.hmset(redisPartyUsers, redisClient, [socket.id, redisUserValue]);
                     await emitPartyStateChange(data.session, ioServer);
                 }
