@@ -96,18 +96,18 @@ router.post('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             req.body.teacherName = req.user.name;
             req.body.startTime = Date.now();
             req.body.status = "online";
-            const [classDoc] = await ClassSession.create([req.body],
+            const [classSessionDoc] = await ClassSession.create([req.body],
                 { session: session }) as unknown as Array<mongoose.Document>;
-            assert.ok(classDoc);
+            assert.ok(classSessionDoc);
 
             const updatedClass = await Class.updateOne(
                 { _id: req.body.class, status: "offline" },
-                { status: "online", session: classDoc._id },
+                { status: "online", session: classSessionDoc._id },
                 { session: session }
             );
             assert.ok(updatedClass && updatedClass.n >= 1);
 
-            const redisParties = [session, "parties"].join(':');
+            const redisParties = [classSessionDoc._id, "parties"].join(':');
             await redisWrapper.sadd(redisParties, redisClient, "independent");
         } catch (err) {
             await session.abortTransaction();
@@ -160,9 +160,9 @@ router.delete('/', expressjwt({ secret: PRIVATE_KEY, algorithms: ['HS256'] }),
             );
             assert.ok(updatedClass && updatedClass.n >= 1);
 
-            const redisParties = [session, "parties"].join(':');
+            const redisParties = [req.query.session, "parties"].join(':');
             await redisWrapper.del(redisParties, redisClient);
-            const redisPartyUsers = [session, "partyUser"].join(':');
+            const redisPartyUsers = [req.query.session, "partyUser"].join(':');
             await redisWrapper.del(redisPartyUsers, redisClient);
         } catch (err) {
             await session.abortTransaction();

@@ -124,7 +124,7 @@ router.get('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256
 }); });
 // TODO session info regex
 router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS256'] }), function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var req, session, userDoc, classDoc, updatedClass, redisParties, err_2;
+    var req, session, userDoc, classSessionDoc, updatedClass, redisParties, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -159,13 +159,13 @@ router.post('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS25
                 req.body.status = "online";
                 return [4 /*yield*/, ClassSession.create([req.body], { session: session })];
             case 4:
-                classDoc = (_a.sent())[0];
-                assert_1.default.ok(classDoc);
-                return [4 /*yield*/, Class.updateOne({ _id: req.body.class, status: "offline" }, { status: "online", session: classDoc._id }, { session: session })];
+                classSessionDoc = (_a.sent())[0];
+                assert_1.default.ok(classSessionDoc);
+                return [4 /*yield*/, Class.updateOne({ _id: req.body.class, status: "offline" }, { status: "online", session: classSessionDoc._id }, { session: session })];
             case 5:
                 updatedClass = _a.sent();
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
-                redisParties = [session, "parties"].join(':');
+                redisParties = [classSessionDoc._id, "parties"].join(':');
                 return [4 /*yield*/, redisWrapper.sadd(redisParties, redisClient, "independent")];
             case 6:
                 _a.sent();
@@ -220,11 +220,11 @@ router.delete('/', express_jwt_1.default({ secret: PRIVATE_KEY, algorithms: ['HS
             case 5:
                 updatedClass = _a.sent();
                 assert_1.default.ok(updatedClass && updatedClass.n >= 1);
-                redisParties = [session, "parties"].join(':');
+                redisParties = [req.query.session, "parties"].join(':');
                 return [4 /*yield*/, redisWrapper.del(redisParties, redisClient)];
             case 6:
                 _a.sent();
-                redisPartyUsers = [session, "partyUser"].join(':');
+                redisPartyUsers = [req.query.session, "partyUser"].join(':');
                 return [4 /*yield*/, redisWrapper.del(redisPartyUsers, redisClient)];
             case 7:
                 _a.sent();
